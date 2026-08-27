@@ -11,7 +11,6 @@
 <meta name="format-detection" content="telephone=no">
 <!-- 引入Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%20viewBox='0%200%20180%20180'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0%25'%20stop-color='%23007AFF'/%3E%3Cstop%20offset='100%25'%20stop-color='%235AC8FA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='180'%20height='180'%20rx='40'%20fill='url(%23g)'/%3E%3Ctext%20x='90'%20y='78'%20font-family='sans-serif'%20font-size='15'%20font-weight='600'%20text-anchor='middle'%20fill='rgba(255,255,255,0.85)'%3E%E5%80%BC%E7%8F%AD%E8%B0%83%E4%BC%91%3C/text%3E%3Ctext%20x='90'%20y='135'%20font-family='sans-serif'%20font-size='58'%20font-weight='700'%20text-anchor='middle'%20fill='white'%3E+1%3C/text%3E%3C/svg%3E">
 <title>值班调休记录</title>
 <style>
@@ -242,10 +241,8 @@ body{
   const SUPABASE_URL = "https://zotnonwudryjspkkbugl.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_OfgEnMd4ouQ6gY3sXqJ2XQ_95tIEh0Y";
   // =================================================================
-
   const { createClient } = window.supabase;
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
   const KEY='dutyCompTracker_v1';
   const OFFLINE_QUEUE_KEY = "duty_offline_queue";
   var data={dutyRecords:[],compRecords:[],initialBalance:0};
@@ -279,7 +276,6 @@ body{
     const {data:rows,error:errRows} = await supabase.from("duty_log").select("*").order("create_at",{asc:false});
     // 读取初始调休配置 id=1
     const {data:cfgRows,error:errCfg} = await supabase.from("duty_config").select("*").eq("id",1).limit(1);
-
     if(errRows || errCfg){
       toast("云端读取失败，使用本地缓存");
       return false;
@@ -291,6 +287,7 @@ body{
       if(r.type === "duty"){
         data.dutyRecords.push({
           id: String(r.id),
+          dbId: r.id,
           date: r.create_at.split('T')[0],
           note: r.note || "",
           createdAt: r.create_at
@@ -298,6 +295,7 @@ body{
       }else if(r.type === "rest"){
         data.compRecords.push({
           id: String(r.id),
+          dbId: r.id,
           date: r.create_at.split('T')[0],
           note: r.note || "",
           createdAt: r.create_at
@@ -343,14 +341,28 @@ body{
     }
   }
 
-  //删除云端记录
+  //【新增修复】编辑更新云端记录
+  async function updateRecordCloud(dbId, newNote, newDate){
+    try{
+      const {error} = await supabase.from("duty_log")
+        .update({ note: newNote, create_at: newDate+"T00:00:00Z" })
+        .eq("id", dbId);
+      if(error) throw error;
+      return {ok:true};
+    }catch(e){
+      toast("云端更新失败，请检查网络");
+      return {ok:false};
+    }
+  }
+
+  //删除云端记录【修复bug，使用真实dbId数字主键】
   async function delRecordCloud(dbId){
     try{
       const {error} = await supabase.from("duty_log").delete().eq("id",Number(dbId));
       if(error) throw error;
       return {ok:true}
     }catch(e){
-      toast("删除失败，请检查网络");
+      toast("删除失败，请检查网络或RLS权限");
       return {ok:false}
     }
   }
@@ -362,10 +374,10 @@ body{
   function save(){
     try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){toast('存储失败')}
   }
-
   function balance(){
     return data.initialBalance+data.dutyRecords.length-data.compRecords.length;
   }
+
   // ---- Helpers ----
   function todayStr(){
     var d=new Date();
@@ -385,6 +397,7 @@ body{
     requestAnimationFrame(function(){t.classList.add('show')});
     setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},1800);
   }
+
   // ---- Render ----
   function render(){
     var bal=balance();
@@ -450,7 +463,6 @@ body{
     var noteVal=document.getElementById('recordNote').value.trim();
     if(!dateVal){toast('请选择日期');return}
     var arr=modalType==='duty'?data.dutyRecords:data.compRecords;
-
     if(modalMode==='add'){
       //新增
       const res = await addRecordCloud(modalType,dateVal,noteVal);
@@ -461,10 +473,29 @@ body{
       await syncOfflineQueue();
       await loadCloud();render();
     }else{
-      //编辑：本版本简易实现：编辑只改本地缓存；如需完整云端编辑可继续扩展
-      for(var i=0;i<arr.length;i++){if(arr[i].id===editId){arr[i].date=dateVal;arr[i].note=noteVal;break}}
+      //【修复：编辑备注日期同步云端】
+      let targetItem=null;
+      for(var i=0;i<arr.length;i++){
+        if(arr[i].id===editId){
+          arr[i].date=dateVal;
+          arr[i].note=noteVal;
+          targetItem = arr[i];
+          break;
+        }
+      }
       save();render();hideModal();
-      toast('已更新（编辑仅本地，重启拉取云端会覆盖）');
+      //有数据库真实ID，执行云端update
+      if(targetItem && targetItem.dbId){
+        const updateRes = await updateRecordCloud(targetItem.dbId, noteVal, dateVal);
+        if(updateRes.ok){
+          toast('已保存，同步云端');
+          await loadCloud();render();
+        }else{
+          toast('本地已改，云端更新失败');
+        }
+      }else{
+        toast('仅本地更新，无云端id');
+      }
     }
   };
 
@@ -472,10 +503,10 @@ body{
     var arr=type==='duty'?data.dutyRecords:data.compRecords;
     var label=type==='duty'?'值班':'调休';
     if(!confirm('确认删除这条'+label+'记录？'))return;
-    // 查找数据库数字id
     const item = arr.find(x=>x.id === id);
-    if(item && item.createdAt){
-      await delRecordCloud(item.createdAt.split('T')[0]+"T00:00:00Z");
+    //修复：使用dbId真实主键删除云端
+    if(item && item.dbId){
+      await delRecordCloud(item.dbId);
     }
     if(type==='duty'){data.dutyRecords=data.dutyRecords.filter(function(r){return r.id!==id})}
     else{data.compRecords=data.compRecords.filter(function(r){return r.id!==id})}
@@ -533,7 +564,6 @@ body{
     load();
     document.getElementById('initialInput').value=data.initialBalance;
     if(localStorage.getItem('hintDismissed'))document.getElementById('hintBox').style.display='none';
-
     //先同步离线队列
     await syncOfflineQueue();
     //拉云端
