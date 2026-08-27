@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="值班调休">
+<meta name="theme-color" content="#007AFF">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%20viewBox='0%200%20180%20180'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0%25'%20stop-color='%23007AFF'/%3E%3Cstop%20offset='100%25'%20stop-color='%235AC8FA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='180'%20height='180'%20rx='40'%20fill='url(%23g)'/%3E%3Ctext%20x='90'%20y='78'%20font-family='sans-serif'%20font-size='15'%20font-weight='600'%20text-anchor='middle'%20fill='rgba(255,255,255,0.85)'%3E%E5%80%BC%E7%8F%AD%E8%B0%83%E4%BC%91%3C/text%3E%3Ctext%20x='90'%20y='135'%20font-family='sans-serif'%20font-size='58'%20font-weight='700'%20text-anchor='middle'%20fill='white'%3E+1%3C/text%3E%3C/svg%3E">
+<title>值班调休记录</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+:root{
+  --blue:#007AFF;--green:#34C759;--orange:#FF9500;--red:#FF3B30;
+  --gray:#8E8E93;--bg:#F2F2F7;--card:#FFFFFF;--text:#000;
+  --sep:#C6C6C8;--label:#6B6B6B;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#000;--card:#1C1C1E;--text:#FFF;--sep:#38383A;--label:#98989F}
+}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;font-size:16px;line-height:1.5;
+  overscroll-behavior-y:none;
+}
+#app{max-width:500px;margin:0 auto;min-height:100vh;padding-bottom:calc(var(--sb) + 20px)}
+
+/* ===== Header ===== */
+.header{
+  position:sticky;top:0;z-index:50;
+  padding:calc(var(--st) + 12px) 16px 12px;
+  background:rgba(242,242,247,0.85);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:0.5px solid var(--sep);
+}
+@media(prefers-color-scheme:dark){.header{background:rgba(0,0,0,0.85)}}
+.header h1{font-size:17px;font-weight:600;text-align:center}
+
+/* ===== Balance Card ===== */
+.balance-card{
+  margin:16px 16px 0;border-radius:20px;padding:28px 20px;text-align:center;
+  background:linear-gradient(135deg,#007AFF,#5AC8FA);
+  color:#fff;box-shadow:0 4px 20px rgba(0,122,255,0.3);
+  transition:transform .2s;
+}
+.balance-card.negative{background:linear-gradient(135deg,#FF3B30,#FF9500);box-shadow:0 4px 20px rgba(255,59,48,0.3)}
+.balance-label{font-size:14px;opacity:0.85;margin-bottom:4px}
+.balance-number{font-size:56px;font-weight:700;line-height:1.1;margin:4px 0}
+.balance-number .unit{font-size:20px;font-weight:500;opacity:0.85}
+.balance-detail{font-size:13px;opacity:0.8;margin-top:4px}
+
+/* ===== Settings ===== */
+.settings-card{
+  margin:12px 16px 0;background:var(--card);border-radius:12px;
+  padding:12px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.settings-card label{font-size:15px;color:var(--label)}
+.settings-card input{
+  width:64px;text-align:center;font-size:18px;font-weight:600;
+  border:none;background:transparent;color:var(--text);outline:none;
+}
+.balance-stepper{display:flex;align-items:center;gap:8px}
+.balance-stepper button{
+  width:30px;height:30px;border-radius:8px;border:none;
+  background:var(--bg);color:var(--blue);font-size:18px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.balance-stepper button:active{opacity:0.5}
+
+/* ===== Section ===== */
+.section{margin:24px 16px 0}
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;padding:0 4px;
+}
+.section-title{font-size:15px;font-weight:600;color:var(--label)}
+.section-count{font-size:13px;color:var(--gray)}
+.record-list{background:var(--card);border-radius:12px;overflow:hidden}
+.record-item{
+  display:flex;align-items:center;padding:12px 16px;
+  border-bottom:0.5px solid var(--sep);cursor:pointer;position:relative;
+}
+.record-item:last-child{border-bottom:none}
+.record-item:active{background:var(--bg)}
+.record-date{flex-shrink:0;width:100px;font-size:15px;font-weight:500}
+.record-note{flex:1;font-size:14px;color:var(--gray);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
+.record-badge{
+  flex-shrink:0;font-size:13px;font-weight:600;width:24px;height:24px;
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+}
+.badge-duty{background:rgba(0,122,255,0.12);color:var(--blue)}
+.badge-comp{background:rgba(255,149,0,0.12);color:var(--orange)}
+.delete-btn{
+  flex-shrink:0;width:28px;height:28px;border:none;background:none;
+  color:var(--red);font-size:18px;cursor:pointer;opacity:0.6;
+  display:flex;align-items:center;justify-content:center;margin-left:4px;
+}
+.delete-btn:active{opacity:1}
+
+/* ===== Empty State ===== */
+.empty-state{padding:24px 16px;text-align:center;color:var(--gray);font-size:14px}
+
+/* ===== Add Button ===== */
+.add-btn{
+  width:100%;margin-top:8px;padding:12px;border:none;border-radius:12px;
+  background:var(--card);color:var(--blue);font-size:15px;font-weight:500;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;
+}
+.add-btn:active{opacity:0.6}
+.add-btn.comp{color:var(--orange)}
+
+/* ===== Data Actions ===== */
+.data-actions{margin:24px 16px 0;display:flex;gap:8px}
+.data-actions button,.data-actions .import-btn{
+  flex:1;padding:10px 8px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--card);color:var(--blue);font-size:14px;cursor:pointer;
+  text-align:center;display:block;
+}
+.data-actions .danger{color:var(--red)}
+.data-actions input{display:none}
+.data-actions button:active,.data-actions .import-btn:active{opacity:0.6}
+
+/* ===== First Use Hint ===== */
+.hint{
+  margin:20px 16px 0;padding:14px 16px;border-radius:12px;
+  background:rgba(255,204,0,0.12);border:0.5px solid rgba(255,204,0,0.3);
+  font-size:13px;color:var(--text);line-height:1.6;
+}
+.hint button{margin-top:8px;padding:4px 14px;border:0.5px solid var(--sep);
+  border-radius:8px;background:var(--card);color:var(--blue);font-size:13px;cursor:pointer}
+
+/* ===== Modal ===== */
+.modal-overlay{
+  position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.4);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-sheet{
+  width:100%;max-width:500px;background:var(--card);border-radius:16px 16px 0 0;
+  padding:calc(var(--sb) + 20px) 20px 20px;transform:translateY(100%);
+  transition:transform .3s cubic-bezier(.32,.72,0,1);
+}
+.modal-overlay.show .modal-sheet{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-header h2{font-size:17px;font-weight:600}
+.modal-close{width:30px;height:30px;border:none;background:none;
+  font-size:18px;color:var(--gray);cursor:pointer}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:13px;color:var(--label);margin-bottom:6px}
+.form-group input{
+  width:100%;padding:10px 12px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--bg);color:var(--text);font-size:16px;outline:none;
+}
+.form-group input:focus{border-color:var(--blue)}
+.modal-footer{display:flex;gap:10px;margin-top:8px}
+.btn-cancel,.btn-save{flex:1;padding:12px;border:none;border-radius:10px;
+  font-size:16px;font-weight:500;cursor:pointer}
+.btn-cancel{background:var(--bg);color:var(--text)}
+.btn-save{background:var(--blue);color:#fff}
+.btn-cancel:active,.btn-save:active{opacity:0.7}
+
+/* ===== Toast ===== */
+.toast{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);
+  background:rgba(0,0,0,0.75);color:#fff;padding:12px 24px;border-radius:12px;
+  font-size:15px;z-index:200;opacity:0;transition:opacity .25s,transform .25s;
+  pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* ===== Animations ===== */
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+.balance-number.bump{animation:pop .35s ease}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header"><h1>值班调休记录</h1></div>
+
+  <div class="balance-card" id="balanceCard">
+    <div class="balance-label">剩余调休天数</div>
+    <div class="balance-number" id="balanceNumber">0<span class="unit"> 天</span></div>
+    <div class="balance-detail" id="balanceDetail"></div>
+  </div>
+
+  <div class="settings-card">
+    <label>初始调休天数</label>
+    <div class="balance-stepper">
+      <button onclick="adjustInitial(-1)">-</button>
+      <input type="number" id="initialInput" value="0" min="0" style="width:50px" onchange="setInitial(this.value)">
+      <button onclick="adjustInitial(1)">+</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">📋 值班记录</span>
+      <span class="section-count" id="dutyCount"></span>
+    </div>
+    <div class="record-list" id="dutyList"></div>
+    <button class="add-btn" onclick="showAddModal('duty')">+ 添加值班记录</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">🏖️ 调休记录</span>
+      <span class="section-count" id="compCount"></span>
+    </div>
+    <div class="record-list" id="compList"></div>
+    <button class="add-btn comp" onclick="showAddModal('comp')">+ 添加调休记录</button>
+  </div>
+
+  <div class="data-actions">
+    <button onclick="exportData()">导出数据</button>
+    <label class="import-btn">导入数据<input type="file" accept=".json" onchange="importData(event)"></label>
+    <button class="danger" onclick="clearAllData()">清空数据</button>
+  </div>
+
+  <div class="hint" id="hintBox">
+    <p>💡 在 Safari 中点击底部「分享」按钮，选择「添加到主屏幕」，即可像 App 一样全屏使用，支持离线。</p>
+    <button onclick="document.getElementById('hintBox').style.display='none';localStorage.setItem('hintDismissed','1')">知道了</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)hideModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2 id="modalTitle">添加记录</h2>
+      <button class="modal-close" onclick="hideModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>日期</label>
+      <input type="date" id="recordDate">
+    </div>
+    <div class="form-group">
+      <label>备注（可选）</label>
+      <input type="text" id="recordNote" placeholder="如：周末值班 / 周五调休" maxlength="50">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideModal()">取消</button>
+      <button class="btn-save" id="btnSave" onclick="saveRecord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var KEY='dutyCompTracker_v1';
+  var data={dutyRecords:[],compRecords:[],initialBalance:0};
+  var modalMode='add',modalType='duty',editId=null;
+
+  // ---- Data ----
+  function load(){
+    try{var s=localStorage.getItem(KEY);if(s){data=JSON.parse(s)}}catch(e){}
+  }
+  function save(){
+    try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){toast('存储失败')}
+  }
+  function balance(){
+    return data.initialBalance+data.dutyRecords.length-data.compRecords.length;
+  }
+
+  // ---- Helpers ----
+  function todayStr(){
+    var d=new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function fmtDate(s){
+    var d=new Date(s+'T00:00:00');
+    var now=new Date(),sameYear=d.getFullYear()===now.getFullYear();
+    var m=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0');
+    var wk=['日','一','二','三','四','五','六'][d.getDay()];
+    return sameYear?m+'月'+da+'日 周'+wk:d.getFullYear()+'年'+m+'月'+da+'日 周'+wk;
+  }
+  function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+  function toast(msg){
+    var t=document.createElement('div');t.className='toast';t.textContent=msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){t.classList.add('show')});
+    setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},1800);
+  }
+
+  // ---- Render ----
+  function render(){
+    var bal=balance();
+    var bn=document.getElementById('balanceNumber');
+    bn.innerHTML=bal+'<span class="unit"> 天</span>';
+    bn.classList.remove('bump');void bn.offsetWidth;bn.classList.add('bump');
+    document.getElementById('balanceCard').classList.toggle('negative',bal<0);
+    document.getElementById('balanceDetail').textContent=
+      '初始 '+data.initialBalance+' + 值班 '+data.dutyRecords.length+' - 调休 '+data.compRecords.length;
+    document.getElementById('dutyCount').textContent=data.dutyRecords.length+' 条';
+    document.getElementById('compCount').textContent=data.compRecords.length+' 条';
+    renderList('duty');
+    renderList('comp');
+  }
+  function renderList(type){
+    var arr=type==='duty'?data.dutyRecords:data.compRecords;
+    var el=document.getElementById(type+'List');
+    if(arr.length===0){el.innerHTML='<div class="empty-state">暂无记录</div>';return}
+    arr.sort(function(a,b){return b.date<a.date?-1:b.date>a.date?1:0});
+    var badge=type==='duty'?'badge-duty':'badge-comp';
+    var symbol=type==='duty'?'+1':'-1';
+    var html='';
+    for(var i=0;i<arr.length;i++){
+      var r=arr[i];
+      html+='<div class="record-item" onclick="editRecord(\''+type+'\',\''+r.id+'\')">'
+        +'<div class="record-date">'+fmtDate(r.date)+'</div>'
+        +'<div class="record-note">'+escapeHtml(r.note||'')+'</div>'
+        +'<div class="record-badge '+badge+'">'+symbol+'</div>'
+        +'<button class="delete-btn" onclick="event.stopPropagation();delRecord(\''+type+'\',\''+r.id+'\')">×</button>'
+        +'</div>';
+    }
+    el.innerHTML=html;
+  }
+  function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+  // ---- Modal ----
+  window.showAddModal=function(type){
+    modalMode='add';modalType=type;editId=null;
+    document.getElementById('modalTitle').textContent=type==='duty'?'添加值班记录':'添加调休记录';
+    document.getElementById('recordDate').value=todayStr();
+    document.getElementById('recordNote').value='';
+    document.getElementById('btnSave').textContent='保存';
+    showModal();
+  };
+  window.editRecord=function(type,id){
+    var arr=type==='duty'?data.dutyRecords:data.compRecords;
+    var r=null;
+    for(var i=0;i<arr.length;i++){if(arr[i].id===id){r=arr[i];break}}
+    if(!r)return;
+    modalMode='edit';modalType=type;editId=id;
+    document.getElementById('modalTitle').textContent=type==='duty'?'编辑值班记录':'编辑调休记录';
+    document.getElementById('recordDate').value=r.date;
+    document.getElementById('recordNote').value=r.note||'';
+    document.getElementById('btnSave').textContent='更新';
+    showModal();
+  };
+  function showModal(){document.getElementById('modalOverlay').classList.add('show');
+    setTimeout(function(){document.getElementById('recordNote').focus()},300)}
+  window.hideModal=function(){document.getElementById('modalOverlay').classList.remove('show')};
+
+  window.saveRecord=function(){
+    var dateVal=document.getElementById('recordDate').value;
+    var noteVal=document.getElementById('recordNote').value.trim();
+    if(!dateVal){toast('请选择日期');return}
+    var arr=modalType==='duty'?data.dutyRecords:data.compRecords;
+    if(modalMode==='add'){
+      arr.push({id:uid(),date:dateVal,note:noteVal,createdAt:new Date().toISOString()});
+      toast(modalType==='duty'?'值班 +1':'调休 -1');
+    }else{
+      for(var i=0;i<arr.length;i++){if(arr[i].id===editId){arr[i].date=dateVal;arr[i].note=noteVal;break}}
+      toast('已更新');
+    }
+    save();render();hideModal();
+  };
+
+  window.delRecord=function(type,id){
+    var arr=type==='duty'?data.dutyRecords:data.compRecords;
+    var label=type==='duty'?'值班':'调休';
+    if(!confirm('确认删除这条'+label+'记录？'))return;
+    if(type==='duty'){data.dutyRecords=data.dutyRecords.filter(function(r){return r.id!==id})}
+    else{data.compRecords=data.compRecords.filter(function(r){return r.id!==id})}
+    save();render();toast('已删除');
+  };
+
+  // ---- Settings ----
+  window.setInitial=function(v){
+    v=parseInt(v)||0;if(v<0)v=0;data.initialBalance=v;save();render();
+  };
+  window.adjustInitial=function(delta){
+    data.initialBalance=Math.max(0,data.initialBalance+delta);
+    document.getElementById('initialInput').value=data.initialBalance;
+    save();render();
+  };
+
+  // ---- Data Management ----
+  window.exportData=function(){
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;a.download='duty_comp_'+todayStr()+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    toast('已导出');
+  };
+  window.importData=function(ev){
+    var f=ev.target.files[0];if(!f)return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var d=JSON.parse(e.target.result);
+        if(!Array.isArray(d.dutyRecords)||!Array.isArray(d.compRecords)||typeof d.initialBalance!=='number'){
+          toast('文件格式不正确');return;
+        }
+        if(!confirm('导入将覆盖当前数据，确认继续？'))return;
+        data=d;save();render();toast('导入成功');
+      }catch(err){toast('解析失败')}
+    };
+    reader.readAsText(f);ev.target.value='';
+  };
+  window.clearAllData=function(){
+    if(!confirm('确认清空全部记录？此操作不可恢复！'))return;
+    data={dutyRecords:[],compRecords:[],initialBalance:0};
+    document.getElementById('initialInput').value=0;
+    save();render();toast('已清空');
+  };
+
+  // ---- Init ----
+  load();
+  document.getElementById('initialInput').value=data.initialBalance;
+  if(localStorage.getItem('hintDismissed'))document.getElementById('hintBox').style.display='none';
+  render();
+  // Prevent body scroll bounce on iOS standalone
+  document.addEventListener('touchmove',function(e){
+    if(e.target.closest('.modal-overlay')&&!e.target.closest('.modal-sheet'))e.preventDefault();
+  },{passive:false});
+})();
+</script>
+</body>
+</html>
