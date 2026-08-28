@@ -262,6 +262,53 @@ body{
 /* ===== Animations ===== */
 @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
 .balance-number.bump{animation:pop .35s ease}
+/* ===== Pending Screen ===== */
+.pending-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.pending-card{
+  width:100%;max-width:360px;background:var(--card);border-radius:24px;
+  padding:40px 28px 28px;text-align:center;
+  box-shadow:0 4px 30px rgba(0,0,0,0.08);
+}
+.pending-logo{
+  width:72px;height:72px;border-radius:20px;margin:0 auto 16px;
+  background:linear-gradient(135deg,#FF9500,#FFCC00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;box-shadow:0 4px 16px rgba(255,149,0,0.3);
+}
+.pending-card h2{font-size:20px;font-weight:700;margin-bottom:8px}
+.pending-desc{font-size:14px;color:var(--label);line-height:1.6;margin-bottom:24px}
+.pending-retry{
+  width:100%;padding:12px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--card);color:var(--blue);font-size:15px;cursor:pointer;
+  margin-top:10px;
+}
+.pending-retry:active{opacity:0.6}
+/* ===== Profile Button ===== */
+.profile-btn{
+  border:0.5px solid var(--sep);background:var(--card);color:var(--blue);
+  font-size:13px;cursor:pointer;padding:4px 12px;border-radius:8px;
+}
+.profile-btn:active{opacity:0.6}
+/* ===== Admin Status Tags ===== */
+.admin-status-tag{font-size:11px;padding:1px 6px;border-radius:4px;margin-left:4px}
+.status-pending{background:rgba(255,149,0,0.12);color:var(--orange)}
+.status-approved{background:rgba(52,199,89,0.12);color:var(--green)}
+/* ===== Admin User Item (V4) ===== */
+.admin-user-item{
+  display:flex;flex-direction:column;padding:12px 0;
+  border-bottom:0.5px solid var(--sep);gap:8px;
+}
+.admin-user-email{font-size:15px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.admin-user-actions{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.admin-action-btn{
+  padding:5px 10px;border:0.5px solid var(--sep);border-radius:8px;
+  background:var(--card);color:var(--blue);font-size:12px;cursor:pointer;
+}
+/* ===== Profile Modal ===== */
+.profile-info{font-size:15px;margin-bottom:16px;padding:12px 16px;background:var(--bg);border-radius:10px;line-height:1.8}
+.profile-info .label{color:var(--label);font-size:13px}
+.divider{height:0.5px;background:var(--sep);margin:16px 0}
+.hint-text{font-size:12px;color:var(--gray);line-height:1.5;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -277,16 +324,36 @@ body{
           <label>邮箱</label>
           <input type="email" id="authEmail" placeholder="your@email.com" autocomplete="email">
         </div>
+        <div class="form-group" id="nameGroup" style="display:none">
+          <label>姓名 <span style="color:var(--red)">*</span></label>
+          <input type="text" id="authName" placeholder="请输入真实姓名" autocomplete="name">
+        </div>
         <div class="form-group">
           <label>密码</label>
           <input type="password" id="authPassword" placeholder="至少6位" autocomplete="current-password">
         </div>
         <button class="auth-submit" id="authSubmit" onclick="handleAuth()">登录</button>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin:-6px 0 8px">
+        <span style="font-size:13px;color:var(--blue);cursor:pointer" onclick="showForgotModal()">忘记密码？</span>
+      </div>
       <div class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">没有账号？去注册</div>
       <div class="auth-hint">
         首次使用请先注册账号<br>每个账号的值班调休数据互相隔离
       </div>
+    </div>
+  </div>
+  <!-- ====== 等待审核界面 ====== -->
+  <div id="pendingScreen" class="pending-screen" style="display:none">
+    <div class="pending-card">
+      <div class="pending-logo">⏳</div>
+      <h2>等待管理员审核</h2>
+      <div class="pending-desc">
+        您的注册申请已提交，请耐心等待管理员审核通过后即可使用系统。<br><br>
+        审核通过后，请点击下方按钮刷新状态或重新登录。
+      </div>
+      <button class="auth-submit" onclick="recheckApproval()">刷新审核状态</button>
+      <button class="pending-retry" onclick="signOut()">退出登录</button>
     </div>
   </div>
   <!-- ====== 主应用界面（登录后显示） ====== -->
@@ -296,6 +363,7 @@ body{
       <div class="user-bar">
         <span class="user-email" id="userEmail"></span>
         <div class="user-actions">
+          <button class="profile-btn" onclick="showProfileModal()">个人中心</button>
           <button class="admin-btn" id="adminBtn" onclick="showAdminModal()" style="display:none">管理用户</button>
           <button class="logout-btn" onclick="signOut()">退出登录</button>
         </div>
@@ -411,6 +479,82 @@ body{
     </div>
   </div>
 </div>
+<!-- ====== 个人中心弹窗 ====== -->
+<div class="modal-overlay" id="profileOverlay" onclick="if(event.target===this)hideProfileModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2>个人中心</h2>
+      <button class="modal-close" onclick="hideProfileModal()">✕</button>
+    </div>
+    <div class="profile-info">
+      <div><span class="label">姓名：</span><span id="profileName">-</span></div>
+      <div><span class="label">邮箱：</span><span id="profileEmailDisplay">-</span></div>
+    </div>
+    <div class="divider"></div>
+    <div class="hint-text">修改密码：请输入当前密码和新密码</div>
+    <div class="form-group">
+      <label>当前密码</label>
+      <input type="password" id="currentPassword" placeholder="输入当前密码" autocomplete="current-password">
+    </div>
+    <div class="form-group">
+      <label>新密码</label>
+      <input type="password" id="newPasswordInput" placeholder="至少6位" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>确认新密码</label>
+      <input type="password" id="confirmPasswordInput" placeholder="再次输入新密码" autocomplete="new-password">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideProfileModal()">关闭</button>
+      <button class="btn-save" onclick="changePassword()">修改密码</button>
+    </div>
+    <div class="divider"></div>
+    <div class="hint-text">忘记当前密码？可通过注册邮箱重置</div>
+    <button class="btn-cancel" style="width:100%" onclick="hideProfileModal();showForgotModal()">通过邮箱重置密码</button>
+  </div>
+</div>
+<!-- ====== 忘记密码弹窗 ====== -->
+<div class="modal-overlay" id="forgotOverlay" onclick="if(event.target===this)hideForgotModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2>重置密码</h2>
+      <button class="modal-close" onclick="hideForgotModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>注册邮箱</label>
+      <input type="email" id="forgotEmail" placeholder="your@email.com">
+    </div>
+    <div class="hint-text">
+      点击下方按钮后，系统将向您的邮箱发送一封密码重置邮件。请查收邮件并点击其中的链接来设置新密码。
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideForgotModal()">取消</button>
+      <button class="btn-save" onclick="sendResetEmail()">发送重置邮件</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 密码重置弹窗（邮箱链接回调后显示） ====== -->
+<div class="modal-overlay" id="resetOverlay" onclick="if(event.target===this)hideResetModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2>设置新密码</h2>
+      <button class="modal-close" onclick="hideResetModal()">✕</button>
+    </div>
+    <div class="hint-text">请为您的账号设置一个新密码</div>
+    <div class="form-group">
+      <label>新密码</label>
+      <input type="password" id="resetNewPassword" placeholder="至少6位" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>确认新密码</label>
+      <input type="password" id="resetConfirmPassword" placeholder="再次输入新密码" autocomplete="new-password">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideResetModal()">取消</button>
+      <button class="btn-save" onclick="setNewPassword()">确认</button>
+    </div>
+  </div>
+</div>
 <!-- ====== Loading 遮罩 ====== -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
@@ -437,14 +581,49 @@ body{
   }
   function showAuthScreen(){
     document.getElementById('authScreen').style.display='flex';
+    document.getElementById('pendingScreen').style.display='none';
+    document.getElementById('mainApp').style.display='none';
+  }
+  function showPendingScreen(){
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('pendingScreen').style.display='flex';
     document.getElementById('mainApp').style.display='none';
   }
   function showMainApp(){
     document.getElementById('authScreen').style.display='none';
+    document.getElementById('pendingScreen').style.display='none';
     document.getElementById('mainApp').style.display='block';
-    if(currentUser){
+  }
+  async function loadUserProfile(){
+    if(!currentUser)return;
+    try{
+      var res=await supabase.from('profiles').select('name,status').eq('user_id',currentUser.id).single();
+      if(res.data){
+        var displayName=res.data.name||currentUser.email;
+        document.getElementById('userEmail').textContent=displayName;
+      }else{
+        document.getElementById('userEmail').textContent=currentUser.email||'';
+      }
+    }catch(e){
       document.getElementById('userEmail').textContent=currentUser.email||'';
     }
+  }
+  async function checkUserApproval(userId){
+    for(var i=0;i<3;i++){
+      try{
+        var res=await supabase.from('profiles').select('name,status').eq('user_id',userId).single();
+        if(res.data){
+          return{approved:res.data.status==='approved',name:res.data.name};
+        }
+        if(res.error){
+          await new Promise(function(r){setTimeout(r,500)});
+          continue;
+        }
+      }catch(e){
+        await new Promise(function(r){setTimeout(r,500)});
+      }
+    }
+    return{approved:false,name:null};
   }
   async function checkAdmin(){
     try{
@@ -458,12 +637,18 @@ body{
     document.getElementById('authTitle').textContent=isLoginMode?'登录':'注册';
     document.getElementById('authSubmit').textContent=isLoginMode?'登录':'注册';
     document.getElementById('authToggle').textContent=isLoginMode?'没有账号？去注册':'已有账号？去登录';
+    document.getElementById('nameGroup').style.display=isLoginMode?'none':'block';
   };
   window.handleAuth=async function(){
     var email=document.getElementById('authEmail').value.trim();
     var password=document.getElementById('authPassword').value;
     if(!email||!password){toast('请输入邮箱和密码');return;}
     if(password.length<6){toast('密码至少6位');return;}
+    var nameVal='';
+    if(!isLoginMode){
+      nameVal=document.getElementById('authName').value.trim();
+      if(!nameVal){toast('请输入姓名');return;}
+    }
     showLoading(true);
     try{
       if(isLoginMode){
@@ -471,12 +656,16 @@ body{
         if(res.error){toast(res.error.message||'登录失败');}
         else{toast('登录成功');}
       }else{
-        var res2=await supabase.auth.signUp({email:email,password:password});
+        var res2=await supabase.auth.signUp({
+          email:email,
+          password:password,
+          options:{data:{name:nameVal}}
+        });
         if(res2.error){toast(res2.error.message||'注册失败');}
         else if(res2.data&&res2.data.session){
-          toast('注册成功，已自动登录');
+          toast('注册成功，请等待管理员审核');
         }else{
-          toast('注册成功，请查收邮箱确认后登录');
+          toast('注册成功，请查收邮箱确认后等待管理员审核');
           toggleAuthMode();
         }
       }
@@ -541,19 +730,30 @@ body{
           var bal=(balances[u.user_id]||0)+c.duty-c.comp;
           var dateStr=u.created_at?u.created_at.split('T')[0]:'';
           var isAdminUser=(u.email==='admin@duty.local');
+          var isPending=(u.status==='pending');
+          var statusTag=isPending?'<span class="admin-status-tag status-pending">待审核</span>':'<span class="admin-status-tag status-approved">已通过</span>';
+          var nameDisplay=u.name||u.email||'未知';
+          var actions='<button class="admin-action-btn" onclick="viewUserData(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">查看</button>';
+          if(!isAdminUser){
+            if(isPending){
+              actions+='<button class="admin-action-btn" style="color:var(--green)" onclick="approveUser(\''+u.user_id+'\')">通过</button>';
+            }
+            actions+='<button class="admin-action-btn" onclick="adminChangeName(\''+u.user_id+'\',\''+escapeHtml(u.name||'')+'\')">改名</button>';
+            actions+='<button class="admin-action-btn" onclick="adminResetPassword(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">重置密码</button>';
+            actions+='<button class="admin-action-btn danger" onclick="deleteUser(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">删除</button>';
+          }
           html+='<div class="admin-user-item">'
             +'<div class="admin-user-info">'
-            +'<div class="admin-user-email">'+escapeHtml(u.email||'未知')
-            +(isAdminUser?'<span class="admin-tag">管理员</span>':'')+'</div>'
-            +'<div class="admin-user-meta">注册: '+dateStr
+            +'<div class="admin-user-email">'+escapeHtml(nameDisplay)
+            +(isAdminUser?'<span class="admin-tag">管理员</span>':'')
+            +statusTag+'</div>'
+            +'<div class="admin-user-meta">'+escapeHtml(u.email||'')
+            +' · 注册: '+dateStr
             +' · 值班: '+c.duty
             +' · 调休: '+c.comp
             +' · 剩余: '+bal+'</div>'
             +'</div>'
-            +'<div class="admin-user-actions">'
-            +'<button class="admin-action-btn" onclick="viewUserData(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">查看</button>'
-            +'<button class="admin-action-btn danger" onclick="deleteUser(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">删除</button>'
-            +'</div>'
+            +'<div class="admin-user-actions">'+actions+'</div>'
             +'</div>';
         });
       }
@@ -640,6 +840,192 @@ body{
       }
     }catch(e){
       toast('删除失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  // ==================== 个人中心 / 密码管理 ====================
+  window.showProfileModal=async function(){
+    document.getElementById('profileOverlay').classList.add('show');
+    document.getElementById('profileEmailDisplay').textContent=currentUser?currentUser.email:'-';
+    document.getElementById('currentPassword').value='';
+    document.getElementById('newPasswordInput').value='';
+    document.getElementById('confirmPasswordInput').value='';
+    if(currentUser){
+      try{
+        var res=await supabase.from('profiles').select('name').eq('user_id',currentUser.id).single();
+        if(res.data){
+          document.getElementById('profileName').textContent=res.data.name||'-';
+        }else{
+          document.getElementById('profileName').textContent='-';
+        }
+      }catch(e){
+        document.getElementById('profileName').textContent='-';
+      }
+    }
+  };
+  window.hideProfileModal=function(){
+    document.getElementById('profileOverlay').classList.remove('show');
+  };
+  window.changePassword=async function(){
+    var currentPwd=document.getElementById('currentPassword').value;
+    var newPwd=document.getElementById('newPasswordInput').value;
+    var confirmPwd=document.getElementById('confirmPasswordInput').value;
+    if(!currentPwd||!newPwd||!confirmPwd){toast('请填写完整');return;}
+    if(newPwd.length<6){toast('新密码至少6位');return;}
+    if(newPwd!==confirmPwd){toast('两次新密码不一致');return;}
+    showLoading(true);
+    try{
+      var signInRes=await supabase.auth.signInWithPassword({
+        email:currentUser.email,
+        password:currentPwd
+      });
+      if(signInRes.error){toast('当前密码不正确');return;}
+      var updateRes=await supabase.auth.updateUser({password:newPwd});
+      if(updateRes.error){
+        toast('修改失败: '+(updateRes.error.message||''));
+      }else{
+        toast('密码修改成功');
+        hideProfileModal();
+      }
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  // ==================== 忘记密码 ====================
+  window.showForgotModal=function(){
+    document.getElementById('forgotOverlay').classList.add('show');
+    document.getElementById('forgotEmail').value='';
+  };
+  window.hideForgotModal=function(){
+    document.getElementById('forgotOverlay').classList.remove('show');
+  };
+  window.sendResetEmail=async function(){
+    var email=document.getElementById('forgotEmail').value.trim();
+    if(!email){toast('请输入邮箱');return;}
+    showLoading(true);
+    try{
+      var res=await supabase.auth.resetPasswordForEmail(email,{
+        redirectTo:window.location.origin+window.location.pathname
+      });
+      if(res.error){
+        toast('发送失败: '+(res.error.message||''));
+      }else{
+        toast('重置邮件已发送，请查收邮箱');
+        hideForgotModal();
+      }
+    }catch(e){
+      toast('发送失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  // ==================== 密码重置（邮箱链接回调） ====================
+  window.showResetModal=function(){
+    document.getElementById('resetOverlay').classList.add('show');
+    document.getElementById('resetNewPassword').value='';
+    document.getElementById('resetConfirmPassword').value='';
+  };
+  window.hideResetModal=function(){
+    document.getElementById('resetOverlay').classList.remove('show');
+  };
+  window.setNewPassword=async function(){
+    var newPwd=document.getElementById('resetNewPassword').value;
+    var confirmPwd=document.getElementById('resetConfirmPassword').value;
+    if(!newPwd||!confirmPwd){toast('请填写完整');return;}
+    if(newPwd.length<6){toast('密码至少6位');return;}
+    if(newPwd!==confirmPwd){toast('两次密码不一致');return;}
+    showLoading(true);
+    try{
+      var res=await supabase.auth.updateUser({password:newPwd});
+      if(res.error){
+        toast('设置失败: '+(res.error.message||''));
+      }else{
+        toast('密码设置成功，请重新登录');
+        hideResetModal();
+        await supabase.auth.signOut();
+      }
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  // ==================== 管理员审核 / 重置密码 / 改名 ====================
+  window.approveUser=async function(userId){
+    showLoading(true);
+    try{
+      var res=await supabase.rpc('admin_approve_user',{target_uid:userId});
+      if(res.error){
+        toast('审核失败: '+(res.error.message||''));
+      }else{
+        toast('已审核通过');
+        await loadUserList();
+      }
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+  window.adminResetPassword=async function(userId,email){
+    var newPwd=prompt('请为 '+email+' 设置新密码（至少6位）:');
+    if(!newPwd)return;
+    if(newPwd.length<6){toast('密码至少6位');return;}
+    showLoading(true);
+    try{
+      var res=await supabase.rpc('admin_reset_password',{target_uid:userId,new_password:newPwd});
+      if(res.error){
+        toast('重置失败: '+(res.error.message||''));
+      }else{
+        toast('密码已重置为: '+newPwd);
+      }
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+  window.adminChangeName=async function(userId,currentName){
+    var newName=prompt('修改姓名:',currentName||'');
+    if(!newName||newName.trim()==='')return;
+    newName=newName.trim();
+    showLoading(true);
+    try{
+      var res=await supabase.rpc('admin_update_name',{target_uid:userId,new_name:newName});
+      if(res.error){
+        toast('修改失败: '+(res.error.message||''));
+      }else{
+        toast('姓名已修改为: '+newName);
+        await loadUserList();
+      }
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+  window.recheckApproval=async function(){
+    if(!currentUser)return;
+    showLoading(true);
+    try{
+      var result=await checkUserApproval(currentUser.id);
+      if(result.approved){
+        toast('审核已通过，正在进入...');
+        showMainApp();
+        await loadUserProfile();
+        await init();
+      }else{
+        toast('仍在等待审核中');
+      }
+    }catch(e){
+      toast('检查失败');
     }finally{
       showLoading(false);
     }
@@ -1138,13 +1524,24 @@ body{
 
   // ==================== 认证状态监听 ====================
   supabase.auth.onAuthStateChange(function(event,session){
+    if(event==='PASSWORD_RECOVERY'){
+      currentUser=session.user;
+      showResetModal();
+      return;
+    }
     if(session&&session.user){
       currentUser=session.user;
-      showMainApp();
-      document.getElementById('userEmail').textContent=currentUser.email||'';
-      if(event==='INITIAL_SESSION'||event==='SIGNED_IN'){
-        init();
-      }
+      checkUserApproval(currentUser.id).then(function(result){
+        if(result.approved){
+          showMainApp();
+          loadUserProfile();
+          if(event==='INITIAL_SESSION'||event==='SIGNED_IN'){
+            init();
+          }
+        }else{
+          showPendingScreen();
+        }
+      });
     }else{
       currentUser=null;
       isAdmin=false;
