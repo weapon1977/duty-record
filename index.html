@@ -9,7 +9,6 @@
 <meta name="apple-mobile-web-app-title" content="值班调休">
 <meta name="theme-color" content="#007AFF">
 <meta name="format-detection" content="telephone=no">
-<!-- 引入Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%20viewBox='0%200%20180%20180'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0%25'%20stop-color='%23007AFF'/%3E%3Cstop%20offset='100%25'%20stop-color='%235AC8FA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='180'%20height='180'%20rx='40'%20fill='url(%23g)'/%3E%3Ctext%20x='90'%20y='78'%20font-family='sans-serif'%20font-size='15'%20font-weight='600'%20text-anchor='middle'%20fill='rgba(255,255,255,0.85)'%3E%E5%80%BC%E7%8F%AD%E8%B0%83%E4%BC%91%3C/text%3E%3Ctext%20x='90'%20y='135'%20font-family='sans-serif'%20font-size='58'%20font-weight='700'%20text-anchor='middle'%20fill='white'%3E+1%3C/text%3E%3C/svg%3E">
 <title>值班调休记录</title>
@@ -33,10 +32,7 @@ body{
 }
 #app{max-width:500px;margin:0 auto;min-height:100vh;padding-bottom:calc(var(--sb) + 20px)}
 /* ===== Auth Screen ===== */
-.auth-screen{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  padding:20px;
-}
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .auth-card{
   width:100%;max-width:360px;background:var(--card);border-radius:24px;
   padding:40px 28px 28px;text-align:center;
@@ -63,12 +59,8 @@ body{
   cursor:pointer;margin-top:8px;
 }
 .auth-submit:active{opacity:0.7}
-.auth-toggle{
-  margin-top:20px;font-size:14px;color:var(--blue);cursor:pointer;
-}
-.auth-hint{
-  margin-top:16px;font-size:12px;color:var(--gray);line-height:1.6;
-}
+.auth-toggle{margin-top:20px;font-size:14px;color:var(--blue);cursor:pointer}
+.auth-hint{margin-top:16px;font-size:12px;color:var(--gray);line-height:1.6}
 /* ===== Header ===== */
 .header{
   position:sticky;top:0;z-index:50;
@@ -80,19 +72,17 @@ body{
 }
 @media(prefers-color-scheme:dark){.header{background:rgba(0,0,0,0.85)}}
 .header h1{font-size:17px;font-weight:600;text-align:center}
-.user-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-top:6px;
+.user-bar{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.user-email{font-size:13px;color:var(--label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.user-actions{display:flex;gap:6px;flex-shrink:0}
+.admin-btn{
+  border:0.5px solid var(--sep);background:var(--card);color:var(--blue);
+  font-size:13px;cursor:pointer;padding:4px 12px;border-radius:8px;
 }
-.user-email{
-  font-size:13px;color:var(--label);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  max-width:240px;
-}
+.admin-btn:active{opacity:0.6}
 .logout-btn{
   border:0.5px solid var(--sep);background:var(--card);color:var(--red);
   font-size:13px;cursor:pointer;padding:4px 12px;border-radius:8px;
-  flex-shrink:0;
 }
 .logout-btn:active{opacity:0.6}
 /* ===== Balance Card ===== */
@@ -126,10 +116,7 @@ body{
 .balance-stepper button:active{opacity:0.5}
 /* ===== Section ===== */
 .section{margin:24px 16px 0}
-.section-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:8px;padding:0 4px;
-}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 4px}
 .section-title{font-size:15px;font-weight:600;color:var(--label)}
 .section-count{font-size:13px;color:var(--gray)}
 .record-list{background:var(--card);border-radius:12px;overflow:hidden}
@@ -141,9 +128,7 @@ body{
 .record-item:active{background:var(--bg)}
 .record-date{flex-shrink:0;width:100px;font-size:15px;font-weight:500}
 .record-note{flex:1;font-size:14px;color:var(--gray);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:4px}
-.record-status{
-  font-size:12px;padding:2px 6px;border-radius:4px;flex-shrink:0;
-}
+.record-status{font-size:12px;padding:2px 6px;border-radius:4px;flex-shrink:0}
 .status-unused{background:rgba(52,199,89,0.12);color:var(--green)}
 .status-used{background:rgba(142,142,147,0.15);color:var(--gray)}
 .record-badge{
@@ -201,8 +186,7 @@ body{
 .modal-overlay.show .modal-sheet{transform:translateY(0)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .modal-header h2{font-size:17px;font-weight:600}
-.modal-close{width:30px;height:30px;border:none;background:none;
-  font-size:18px;color:var(--gray);cursor:pointer}
+.modal-close{width:30px;height:30px;border:none;background:none;font-size:18px;color:var(--gray);cursor:pointer}
 .form-group{margin-bottom:14px}
 .form-group label{display:block;font-size:13px;color:var(--label);margin-bottom:6px}
 .form-group input,.form-group select{
@@ -211,16 +195,41 @@ body{
 }
 .form-group input:focus,.form-group select:focus{border-color:var(--blue)}
 .modal-footer{display:flex;gap:10px;margin-top:8px}
-.btn-cancel,.btn-save{flex:1;padding:12px;border:none;border-radius:10px;
-  font-size:16px;font-weight:500;cursor:pointer}
+.btn-cancel,.btn-save{flex:1;padding:12px;border:none;border-radius:10px;font-size:16px;font-weight:500;cursor:pointer}
 .btn-cancel{background:var(--bg);color:var(--text)}
 .btn-save{background:var(--blue);color:#fff}
 .btn-cancel:active,.btn-save:active{opacity:0.7}
+/* ===== Admin User Management ===== */
+.admin-user-item{
+  display:flex;align-items:center;padding:12px 0;
+  border-bottom:0.5px solid var(--sep);gap:8px;
+}
+.admin-user-item:last-child{border-bottom:none}
+.admin-user-info{flex:1;min-width:0}
+.admin-user-email{font-size:15px;font-weight:500;display:flex;align-items:center;gap:4px}
+.admin-tag{
+  font-size:11px;padding:1px 6px;border-radius:4px;
+  background:rgba(0,122,255,0.12);color:var(--blue);
+}
+.admin-user-meta{font-size:12px;color:var(--gray);margin-top:2px}
+.admin-user-actions{display:flex;gap:6px;flex-shrink:0}
+.admin-action-btn{
+  padding:6px 12px;border:0.5px solid var(--sep);border-radius:8px;
+  background:var(--card);color:var(--blue);font-size:13px;cursor:pointer;
+}
+.admin-action-btn.danger{color:var(--red)}
+.admin-action-btn:active{opacity:0.6}
+.admin-back-btn{
+  width:100%;padding:10px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--card);color:var(--blue);font-size:14px;cursor:pointer;
+  margin-top:12px;
+}
+.admin-back-btn:active{opacity:0.6}
 /* ===== Toast ===== */
 .toast{
   position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);
   background:rgba(0,0,0,0.75);color:#fff;padding:12px 24px;border-radius:12px;
-  font-size:15px;z-index:200;opacity:0;transition:opacity .25s,transform .25s;
+  font-size:15px;z-index:300;opacity:0;transition:opacity .25s,transform .25s;
   pointer-events:none;white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
@@ -273,7 +282,10 @@ body{
       <h1>值班调休记录</h1>
       <div class="user-bar">
         <span class="user-email" id="userEmail"></span>
-        <button class="logout-btn" onclick="signOut()">退出登录</button>
+        <div class="user-actions">
+          <button class="admin-btn" id="adminBtn" onclick="showAdminModal()" style="display:none">管理用户</button>
+          <button class="logout-btn" onclick="signOut()">退出登录</button>
+        </div>
       </div>
     </div>
     <div class="balance-card" id="balanceCard">
@@ -337,8 +349,7 @@ body{
     </div>
     <div class="form-group" id="selectDutyWrap" style="display:none;">
       <label>选择要调休的值班</label>
-      <select id="selectDutyItem">
-      </select>
+      <select id="selectDutyItem"></select>
     </div>
     <div class="form-group" id="noteInputWrap">
       <label>备注（可选）</label>
@@ -350,6 +361,43 @@ body{
     </div>
   </div>
 </div>
+<!-- ====== 管理员用户管理弹窗 ====== -->
+<div class="modal-overlay" id="adminOverlay" onclick="if(event.target===this)hideAdminModal()">
+  <div class="modal-sheet" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <h2 id="adminTitle">用户管理</h2>
+      <button class="modal-close" onclick="hideAdminModal()">✕</button>
+    </div>
+    <!-- 用户列表视图 -->
+    <div id="adminUserListView">
+      <div id="adminUserList"></div>
+    </div>
+    <!-- 用户数据视图 -->
+    <div id="adminDataView" style="display:none">
+      <div style="font-size:15px;font-weight:600;margin-bottom:12px" id="adminDataTitle"></div>
+      <div class="balance-card" id="adminBalanceCard" style="margin:0 0 16px">
+        <div class="balance-label">剩余调休天数</div>
+        <div class="balance-number" id="adminBalanceNumber">0<span class="unit"> 天</span></div>
+        <div class="balance-detail" id="adminBalanceDetail"></div>
+      </div>
+      <div class="section" style="margin:0 0 16px">
+        <div class="section-header">
+          <span class="section-title">📋 值班记录</span>
+          <span class="section-count" id="adminDutyCount"></span>
+        </div>
+        <div class="record-list" id="adminDutyList"></div>
+      </div>
+      <div class="section" style="margin:0 0 16px">
+        <div class="section-header">
+          <span class="section-title">🏖️ 调休记录</span>
+          <span class="section-count" id="adminCompCount"></span>
+        </div>
+        <div class="record-list" id="adminCompList"></div>
+      </div>
+      <button class="admin-back-btn" onclick="backToUserList()">← 返回用户列表</button>
+    </div>
+  </div>
+</div>
 <!-- ====== Loading 遮罩 ====== -->
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
@@ -357,19 +405,18 @@ body{
 <script>
 (function(){
   'use strict';
-  // ============【务必修改这里，填入你自己Supabase参数】============
+  // ============ Supabase 配置 ============
   const SUPABASE_URL = "https://zotnonwudryjspkkbugl.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_OfgEnMd4ouQ6gY3sXqJ2XQ_95tIEh0Y";
-  // =================================================================
   const { createClient } = window.supabase;
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const KEY='dutyCompTracker_v1';
   const OFFLINE_QUEUE_KEY = "duty_offline_queue";
   var data={dutyRecords:[],compRecords:[],initialBalance:0};
   var modalMode='add',modalType='duty',editId=null;
-  var selectedDutyDbId=null;
   var currentUser=null;
   var isLoginMode=true;
+  var isAdmin=false;
 
   // ==================== 用户认证 ====================
   function showLoading(show){
@@ -385,6 +432,13 @@ body{
     if(currentUser){
       document.getElementById('userEmail').textContent=currentUser.email||'';
     }
+  }
+  async function checkAdmin(){
+    try{
+      var res=await supabase.rpc('is_admin');
+      isAdmin=(res.data===true);
+    }catch(e){isAdmin=false}
+    document.getElementById('adminBtn').style.display=isAdmin?'':'none';
   }
   window.toggleAuthMode=function(){
     isLoginMode=!isLoginMode;
@@ -407,10 +461,8 @@ body{
         var res2=await supabase.auth.signUp({email:email,password:password});
         if(res2.error){toast(res2.error.message||'注册失败');}
         else if(res2.data&&res2.data.session){
-          // 注册后直接登录（未开启邮箱确认时）
           toast('注册成功，已自动登录');
         }else{
-          // 开启了邮箱确认
           toast('注册成功，请查收邮箱确认后登录');
           toggleAuthMode();
         }
@@ -425,13 +477,160 @@ body{
     if(!confirm('确认退出登录？'))return;
     await supabase.auth.signOut();
   };
-  // 回车提交
   document.getElementById('authPassword').addEventListener('keydown',function(e){
     if(e.key==='Enter')handleAuth();
   });
   document.getElementById('authEmail').addEventListener('keydown',function(e){
     if(e.key==='Enter')document.getElementById('authPassword').focus();
   });
+
+  // ==================== 管理员功能 ====================
+  window.showAdminModal=async function(){
+    document.getElementById('adminOverlay').classList.add('show');
+    document.getElementById('adminUserListView').style.display='';
+    document.getElementById('adminDataView').style.display='none';
+    await loadUserList();
+  };
+  window.hideAdminModal=function(){
+    document.getElementById('adminOverlay').classList.remove('show');
+  };
+  window.backToUserList=function(){
+    document.getElementById('adminDataView').style.display='none';
+    document.getElementById('adminUserListView').style.display='';
+  };
+  async function loadUserList(){
+    showLoading(true);
+    try{
+      var resU=await supabase.from('profiles').select('*').order('created_at',{ascending:false});
+      if(resU.error){toast('加载用户列表失败');return;}
+      var users=resU.data||[];
+      // 加载所有记录用于统计
+      var resR=await supabase.from('duty_log').select('user_id,type');
+      var allRecords=resR.data||[];
+      var counts={};
+      allRecords.forEach(function(r){
+        if(!counts[r.user_id])counts[r.user_id]={duty:0,comp:0};
+        if(r.type==='duty')counts[r.user_id].duty++;
+        else if(r.type==='rest')counts[r.user_id].comp++;
+      });
+      // 加载所有配置用于初始值
+      var resC=await supabase.from('duty_config').select('user_id,initial_balance');
+      var balances={};
+      (resC.data||[]).forEach(function(c){
+        balances[c.user_id]=c.initial_balance||0;
+      });
+      var html='';
+      if(users.length===0){
+        html='<div class="empty-state">暂无注册用户</div>';
+      }else{
+        users.forEach(function(u){
+          var c=counts[u.user_id]||{duty:0,comp:0};
+          var bal=(balances[u.user_id]||0)+c.duty-c.comp;
+          var dateStr=u.created_at?u.created_at.split('T')[0]:'';
+          var isAdminUser=(u.email==='admin@duty.local');
+          html+='<div class="admin-user-item">'
+            +'<div class="admin-user-info">'
+            +'<div class="admin-user-email">'+escapeHtml(u.email||'未知')
+            +(isAdminUser?'<span class="admin-tag">管理员</span>':'')+'</div>'
+            +'<div class="admin-user-meta">注册: '+dateStr
+            +' · 值班: '+c.duty
+            +' · 调休: '+c.comp
+            +' · 剩余: '+bal+'</div>'
+            +'</div>'
+            +'<div class="admin-user-actions">'
+            +'<button class="admin-action-btn" onclick="viewUserData(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">查看</button>'
+            +'<button class="admin-action-btn danger" onclick="deleteUser(\''+u.user_id+'\',\''+escapeHtml(u.email||'')+'\')">删除</button>'
+            +'</div>'
+            +'</div>';
+        });
+      }
+      document.getElementById('adminUserList').innerHTML=html;
+    }finally{
+      showLoading(false);
+    }
+  }
+  window.viewUserData=async function(userId,email){
+    document.getElementById('adminUserListView').style.display='none';
+    document.getElementById('adminDataView').style.display='';
+    document.getElementById('adminDataTitle').textContent=email+' 的记录';
+    showLoading(true);
+    try{
+      var resR=await supabase.from('duty_log').select('*').eq('user_id',userId).order('create_at',{ascending:false});
+      var resC=await supabase.from('duty_config').select('*').eq('user_id',userId).limit(1);
+      var rows=resR.data||[];
+      var cfgRows=resC.data||[];
+      var dutyRecords=[];
+      var compRecords=[];
+      var initialBalance=0;
+      rows.forEach(function(r){
+        if(r.type==='duty'){
+          dutyRecords.push({date:r.create_at.split('T')[0],duty_type:r.duty_type,is_used:!!r.is_used});
+        }else if(r.type==='rest'){
+          compRecords.push({date:r.create_at.split('T')[0],note:r.note||''});
+        }
+      });
+      if(cfgRows.length>0)initialBalance=cfgRows[0].initial_balance||0;
+      var bal=initialBalance+dutyRecords.length-compRecords.length;
+      // 渲染余额卡片
+      document.getElementById('adminBalanceNumber').innerHTML=bal+'<span class="unit"> 天</span>';
+      document.getElementById('adminBalanceCard').classList.toggle('negative',bal<0);
+      document.getElementById('adminBalanceDetail').textContent='初始 '+initialBalance+' + 值班 '+dutyRecords.length+' - 调休 '+compRecords.length;
+      document.getElementById('adminDutyCount').textContent=dutyRecords.length+' 条';
+      document.getElementById('adminCompCount').textContent=compRecords.length+' 条';
+      // 渲染值班列表（只读）
+      var dutyHtml='';
+      if(dutyRecords.length===0){
+        dutyHtml='<div class="empty-state">暂无记录</div>';
+      }else{
+        dutyRecords.sort(function(a,b){return b.date<a.date?-1:b.date>a.date?1:0});
+        dutyRecords.forEach(function(r){
+          var st=r.is_used?'已调休':'未调休';
+          var sc=r.is_used?'status-used':'status-unused';
+          dutyHtml+='<div class="record-item" style="cursor:default">'
+            +'<div class="record-date">'+fmtDate(r.date)+'</div>'
+            +'<div class="record-note">'+escapeHtml(r.duty_type||'')+'</div>'
+            +'<span class="record-status '+sc+'">'+st+'</span>'
+            +'<div class="record-badge badge-duty">+1</div>'
+            +'</div>';
+        });
+      }
+      document.getElementById('adminDutyList').innerHTML=dutyHtml;
+      // 渲染调休列表（只读）
+      var compHtml='';
+      if(compRecords.length===0){
+        compHtml='<div class="empty-state">暂无记录</div>';
+      }else{
+        compRecords.sort(function(a,b){return b.date<a.date?-1:b.date>a.date?1:0});
+        compRecords.forEach(function(r){
+          compHtml+='<div class="record-item" style="cursor:default">'
+            +'<div class="record-date">'+fmtDate(r.date)+'</div>'
+            +'<div class="record-note">'+escapeHtml(r.note||'')+'</div>'
+            +'<div class="record-badge badge-comp">-1</div>'
+            +'</div>';
+        });
+      }
+      document.getElementById('adminCompList').innerHTML=compHtml;
+    }finally{
+      showLoading(false);
+    }
+  };
+  window.deleteUser=async function(userId,email){
+    if(!confirm('确认删除用户 '+email+' 及其所有数据？此操作不可恢复！'))return;
+    showLoading(true);
+    try{
+      var res=await supabase.rpc('delete_user',{target_uid:userId});
+      if(res.error){
+        toast('删除失败: '+(res.error.message||'未知错误'));
+      }else{
+        toast('用户 '+email+' 已删除');
+        await loadUserList();
+      }
+    }catch(e){
+      toast('删除失败');
+    }finally{
+      showLoading(false);
+    }
+  };
 
   // ==================== 离线队列 ====================
   function getOfflineQueue(){
@@ -447,7 +646,6 @@ body{
     var okCount=0;
     for(var i=0;i<queue.length;i++){
       var item=queue[i];
-      // 只同步当前用户的离线记录
       if(currentUser&&item.user_id&&item.user_id!==currentUser.id)continue;
       var res=await supabase.from("duty_log").insert(item);
       if(!res.error)okCount++;
@@ -460,9 +658,14 @@ body{
 
   // ==================== 云端数据读写 ====================
   async function loadCloud(){
-    var res1=await supabase.from("duty_log").select("*").order("create_at",{ascending:false});
-    // RLS 自动过滤：只返回当前用户的记录
-    var res2=await supabase.from("duty_config").select("*").limit(1);
+    if(!currentUser)return false;
+    // 代码层显式过滤 + RLS 双重保障
+    var res1=await supabase.from("duty_log").select("*")
+      .eq("user_id",currentUser.id)
+      .order("create_at",{ascending:false});
+    var res2=await supabase.from("duty_config").select("*")
+      .eq("user_id",currentUser.id)
+      .limit(1);
     if(res1.error||res2.error){
       toast("云端读取失败，使用本地缓存");
       return false;
@@ -514,11 +717,9 @@ body{
       duty_type:dutyType,
       is_used:isUsed||false,
       rest_change:rest_change,
-      create_at:dateStr+"T00:00:00Z"
+      create_at:dateStr+"T00:00:00Z",
+      user_id:currentUser?currentUser.id:null
     };
-    if(currentUser){
-      payload.user_id=currentUser.id;
-    }
     try{
       var res=await supabase.from("duty_log").insert(payload);
       if(res.error)throw res.error;
@@ -559,7 +760,7 @@ body{
       if(res.error)throw res.error;
       return{ok:true};
     }catch(e){
-      toast("删除失败，请检查网络或RLS权限");
+      toast("删除失败，请检查网络");
       return{ok:false};
     }
   }
@@ -594,6 +795,7 @@ body{
     requestAnimationFrame(function(){t.classList.add('show')});
     setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},1800);
   }
+  function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 
   // ==================== 渲染 ====================
   function render(){
@@ -640,11 +842,10 @@ body{
     }
     el.innerHTML=html;
   }
-  function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
   // ==================== 弹窗 ====================
   window.showAddModal=function(type){
-    modalMode='add';modalType=type;editId=null;selectedDutyDbId=null;
+    modalMode='add';modalType=type;editId=null;
     document.getElementById('modalTitle').textContent=type==='duty'?'添加值班记录':'添加调休记录';
     document.getElementById('recordDate').value=todayStr();
     document.getElementById('recordNote').value='';
@@ -821,6 +1022,7 @@ body{
     load();
     document.getElementById('initialInput').value=data.initialBalance;
     if(localStorage.getItem('hintDismissed'))document.getElementById('hintBox').style.display='none';
+    await checkAdmin();
     await syncOfflineQueue();
     await loadCloud();
     document.getElementById('initialInput').value=data.initialBalance;
@@ -838,12 +1040,13 @@ body{
       }
     }else{
       currentUser=null;
+      isAdmin=false;
+      document.getElementById('adminBtn').style.display='none';
       data={dutyRecords:[],compRecords:[],initialBalance:0};
       showAuthScreen();
     }
   });
 
-  // Prevent body scroll bounce on iOS standalone
   document.addEventListener('touchmove',function(e){
     if(e.target.closest('.modal-overlay')&&!e.target.closest('.modal-sheet'))e.preventDefault();
   },{passive:false});
