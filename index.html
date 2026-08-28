@@ -125,6 +125,19 @@ body{
   border-bottom:0.5px solid var(--sep);cursor:pointer;position:relative;gap:8px;
 }
 .record-item:last-child{border-bottom:none}
+.fold-toggle{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px;border-top:0.5px solid var(--sep);
+  color:var(--blue);font-size:14px;cursor:pointer;
+  background:rgba(0,122,255,0.04);
+}
+.fold-toggle:active{opacity:0.6}
+.fold-hidden{display:none}
+.duty-section-header{display:flex;align-items:center;gap:4px}
+.duty-section-header .badge{
+  font-size:11px;padding:1px 6px;border-radius:6px;
+  background:rgba(0,122,255,0.12);color:var(--blue);
+}
 .record-item:active{background:var(--bg)}
 .record-date{flex-shrink:0;width:100px;font-size:15px;font-weight:500}
 .record-note{flex:1;font-size:14px;color:var(--gray);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:4px}
@@ -806,11 +819,14 @@ body{
     document.getElementById('balanceCard').classList.toggle('negative',bal<0);
     document.getElementById('balanceDetail').textContent=
       '初始 '+data.initialBalance+' + 值班 '+data.dutyRecords.length+' - 调休 '+data.compRecords.length;
-    document.getElementById('dutyCount').textContent=data.dutyRecords.length+' 条';
+    // 值班计数改为"未调休"数量
+    var unusedCount=(data.dutyRecords||[]).filter(function(r){return!r.is_used}).length;
+    document.getElementById('dutyCount').textContent=unusedCount+' 条（未调休）';
     document.getElementById('compCount').textContent=data.compRecords.length+' 条';
     renderList('duty');
     renderList('comp');
   }
+  var foldState={duty:false,comp:false};
   function renderList(type){
     var arr=type==='duty'?data.dutyRecords:data.compRecords;
     var el=document.getElementById(type+'List');
@@ -819,29 +835,65 @@ body{
     var badge=type==='duty'?'badge-duty':'badge-comp';
     var symbol=type==='duty'?'+1':'-1';
     var html='';
-    for(var i=0;i<arr.length;i++){
-      var r=arr[i];
-      if(type==='duty'){
-        var statusText=r.is_used?"已调休":"未调休";
-        var statusCls=r.is_used?"status-used":"status-unused";
-        html+='<div class="record-item" onclick="editRecord(\''+type+'\',\''+r.id+'\')">'
-          +'<div class="record-date">'+fmtDate(r.date)+'</div>'
-          +'<div class="record-note">'+escapeHtml(r.duty_type||r.note||'')+'</div>'
-          +'<span class="record-status '+statusCls+'">'+statusText+'</span>'
-          +'<div class="record-badge '+badge+'">'+symbol+'</div>'
-          +'<button class="delete-btn" onclick="event.stopPropagation();delRecord(\''+type+'\',\''+r.id+'\')">×</button>'
-          +'</div>';
-      }else{
-        html+='<div class="record-item" onclick="editRecord(\''+type+'\',\''+r.id+'\')">'
-          +'<div class="record-date">'+fmtDate(r.date)+'</div>'
-          +'<div class="record-note">'+escapeHtml(r.note||'')+'</div>'
-          +'<div class="record-badge '+badge+'">'+symbol+'</div>'
-          +'<button class="delete-btn" onclick="event.stopPropagation();delRecord(\''+type+'\',\''+r.id+'\')">×</button>'
+    var visible=[];
+    var hidden=[];
+    
+    if(type==='duty'){
+      // 值班记录：只展示未调休的，超过5条折叠
+      var unused=arr.filter(function(r){return!r.is_used});
+      if(unused.length===0){el.innerHTML='<div class="empty-state">暂无未调休记录</div>';return}
+      visible=unused.slice(0,5);
+      hidden=unused.slice(5);
+    }else{
+      // 调休记录：展示全部但超过3条折叠（最新的在前）
+      visible=arr.slice(0,3);
+      hidden=arr.slice(3);
+    }
+    
+    // 渲染可见部分
+    for(var i=0;i<visible.length;i++){
+      html+=buildRecordItem(type,visible[i],badge,symbol);
+    }
+    
+    // 渲染折叠部分（如果展开则显示）
+    if(hidden.length>0){
+      var isFolded=!foldState[type];
+      for(var j=0;j<hidden.length;j++){
+        html+='<div class="record-item'+(isFolded?' fold-hidden':'')+'" data-fold="'+type+'" onclick="editRecord(\''+type+'\',\''+hidden[j].id+'\')">'
+          +(type==='duty'?buildDutyItemContent(hidden[j],badge,symbol):buildCompItemContent(hidden[j],badge,symbol))
           +'</div>';
       }
+      html+='<div class="fold-toggle" onclick="toggleFold(\''+type+'\')">'
+        +'<span>'+(isFolded?'▼ 展开 '+hidden.length+' 条记录':'▲ 收起')+'</span>'
+        +'</div>';
     }
+    
     el.innerHTML=html;
   }
+  function buildRecordItem(type,r,badge,symbol){
+    return '<div class="record-item" onclick="editRecord(\''+type+'\',\''+r.id+'\')">'
+      +(type==='duty'?buildDutyItemContent(r,badge,symbol):buildCompItemContent(r,badge,symbol))
+      +'</div>';
+  }
+  function buildDutyItemContent(r,badge,symbol){
+    var statusText=r.is_used?"已调休":"未调休";
+    var statusCls=r.is_used?"status-used":"status-unused";
+    return '<div class="record-date">'+fmtDate(r.date)+'</div>'
+      +'<div class="record-note">'+escapeHtml(r.duty_type||r.note||'')+'</div>'
+      +'<span class="record-status '+statusCls+'">'+statusText+'</span>'
+      +'<div class="record-badge '+badge+'">'+symbol+'</div>'
+      +'<button class="delete-btn" onclick="event.stopPropagation();delRecord(\'duty\',\''+r.id+'\')">×</button>';
+  }
+  function buildCompItemContent(r,badge,symbol){
+    return '<div class="record-date">'+fmtDate(r.date)+'</div>'
+      +'<div class="record-note">'+escapeHtml(r.note||'')+'</div>'
+      +'<div class="record-badge '+badge+'">'+symbol+'</div>'
+      +'<button class="delete-btn" onclick="event.stopPropagation();delRecord(\'comp\',\''+r.id+'\')">×</button>';
+  }
+  window.toggleFold=function(type){
+    foldState[type]=!foldState[type];
+    renderList(type);
+  };
 
   // ==================== 弹窗 ====================
   window.showAddModal=function(type){
