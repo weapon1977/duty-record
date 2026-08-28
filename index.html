@@ -819,9 +819,7 @@ body{
     document.getElementById('balanceCard').classList.toggle('negative',bal<0);
     document.getElementById('balanceDetail').textContent=
       '初始 '+data.initialBalance+' + 值班 '+data.dutyRecords.length+' - 调休 '+data.compRecords.length;
-    // 值班计数改为"未调休"数量
-    var unusedCount=(data.dutyRecords||[]).filter(function(r){return!r.is_used}).length;
-    document.getElementById('dutyCount').textContent=unusedCount+' 条（未调休）';
+    document.getElementById('dutyCount').textContent=data.dutyRecords.length+' 条';
     document.getElementById('compCount').textContent=data.compRecords.length+' 条';
     renderList('duty');
     renderList('comp');
@@ -839,11 +837,12 @@ body{
     var hidden=[];
     
     if(type==='duty'){
-      // 值班记录：只展示未调休的，超过5条折叠
+      // 值班记录：前5条未调休展示，其余未调休+所有已调休折叠
       var unused=arr.filter(function(r){return!r.is_used});
-      if(unused.length===0){el.innerHTML='<div class="empty-state">暂无未调休记录</div>';return}
+      var used=arr.filter(function(r){return r.is_used});
+      if(arr.length===0){el.innerHTML='<div class="empty-state">暂无记录</div>';return}
       visible=unused.slice(0,5);
-      hidden=unused.slice(5);
+      hidden=unused.slice(5).concat(used);
     }else{
       // 调休记录：展示全部但超过3条折叠（最新的在前）
       visible=arr.slice(0,3);
