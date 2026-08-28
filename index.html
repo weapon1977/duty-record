@@ -508,9 +508,6 @@ body{
       <button class="btn-cancel" onclick="hideProfileModal()">关闭</button>
       <button class="btn-save" onclick="changePassword()">修改密码</button>
     </div>
-    <div class="divider"></div>
-    <div class="hint-text">忘记当前密码？可通过注册邮箱重置</div>
-    <button class="btn-cancel" style="width:100%" onclick="hideProfileModal();showForgotModal()">通过邮箱重置密码</button>
   </div>
 </div>
 <!-- ====== 忘记密码弹窗 ====== -->
@@ -1526,6 +1523,7 @@ body{
   supabase.auth.onAuthStateChange(function(event,session){
     if(event==='PASSWORD_RECOVERY'){
       currentUser=session.user;
+      showAuthScreen();
       showResetModal();
       return;
     }
@@ -1550,6 +1548,24 @@ body{
       showAuthScreen();
     }
   });
+
+  // 页面加载后检查是否为密码重置链接（备用方案：部分浏览器不会触发 PASSWORD_RECOVERY 事件）
+  (function checkRecoveryFromUrl(){
+    var hash=window.location.hash;
+    if(hash.indexOf('type=recovery')!==-1 || hash.indexOf('access_token')!==-1){
+      supabase.auth.getSession().then(function(res){
+        if(res.data && res.data.session){
+          currentUser=res.data.session.user;
+          showAuthScreen();
+          showResetModal();
+        }
+      });
+      // 清理 URL，防止刷新时重复触发
+      if(window.history && window.history.replaceState){
+        window.history.replaceState({},document.title,window.location.pathname+window.location.search);
+      }
+    }
+  })();
 
   document.addEventListener('touchmove',function(e){
     if(e.target.closest('.modal-overlay')&&!e.target.closest('.modal-sheet'))e.preventDefault();
