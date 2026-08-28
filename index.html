@@ -32,10 +32,47 @@ body{
   overscroll-behavior-y:none;
 }
 #app{max-width:500px;margin:0 auto;min-height:100vh;padding-bottom:calc(var(--sb) + 20px)}
+/* ===== Auth Screen ===== */
+.auth-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.auth-card{
+  width:100%;max-width:360px;background:var(--card);border-radius:24px;
+  padding:40px 28px 28px;text-align:center;
+  box-shadow:0 4px 30px rgba(0,0,0,0.08);
+}
+.auth-logo{
+  width:72px;height:72px;border-radius:20px;margin:0 auto 16px;
+  background:linear-gradient(135deg,#007AFF,#5AC8FA);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;box-shadow:0 4px 16px rgba(0,122,255,0.3);
+}
+.auth-card h2{font-size:24px;font-weight:700;margin-bottom:8px}
+.auth-subtitle{font-size:14px;color:var(--label);margin-bottom:28px}
+.auth-form .form-group{margin-bottom:14px;text-align:left}
+.auth-form .form-group label{display:block;font-size:13px;color:var(--label);margin-bottom:6px}
+.auth-form .form-group input{
+  width:100%;padding:12px 14px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--bg);color:var(--text);font-size:16px;outline:none;
+}
+.auth-form .form-group input:focus{border-color:var(--blue)}
+.auth-submit{
+  width:100%;padding:14px;border:none;border-radius:12px;
+  background:var(--blue);color:#fff;font-size:17px;font-weight:600;
+  cursor:pointer;margin-top:8px;
+}
+.auth-submit:active{opacity:0.7}
+.auth-toggle{
+  margin-top:20px;font-size:14px;color:var(--blue);cursor:pointer;
+}
+.auth-hint{
+  margin-top:16px;font-size:12px;color:var(--gray);line-height:1.6;
+}
 /* ===== Header ===== */
 .header{
   position:sticky;top:0;z-index:50;
-  padding:calc(var(--st) + 12px) 16px 12px;
+  padding:calc(var(--st) + 12px) 16px 10px;
   background:rgba(242,242,247,0.85);
   backdrop-filter:saturate(180%) blur(20px);
   -webkit-backdrop-filter:saturate(180%) blur(20px);
@@ -43,6 +80,21 @@ body{
 }
 @media(prefers-color-scheme:dark){.header{background:rgba(0,0,0,0.85)}}
 .header h1{font-size:17px;font-weight:600;text-align:center}
+.user-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:6px;
+}
+.user-email{
+  font-size:13px;color:var(--label);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:240px;
+}
+.logout-btn{
+  border:0.5px solid var(--sep);background:var(--card);color:var(--red);
+  font-size:13px;cursor:pointer;padding:4px 12px;border-radius:8px;
+  flex-shrink:0;
+}
+.logout-btn:active{opacity:0.6}
 /* ===== Balance Card ===== */
 .balance-card{
   margin:16px 16px 0;border-radius:20px;padding:28px 20px;text-align:center;
@@ -172,6 +224,19 @@ body{
   pointer-events:none;white-space:nowrap;
 }
 .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+/* ===== Loading ===== */
+.loading-overlay{
+  position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0.2);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+.loading-overlay.show{opacity:1;pointer-events:auto}
+.spinner{
+  width:36px;height:36px;border:3px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 /* ===== Animations ===== */
 @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
 .balance-number.bump{animation:pop .35s ease}
@@ -179,46 +244,79 @@ body{
 </head>
 <body>
 <div id="app">
-  <div class="header"><h1>值班调休记录</h1></div>
-  <div class="balance-card" id="balanceCard">
-    <div class="balance-label">剩余调休天数</div>
-    <div class="balance-number" id="balanceNumber">0<span class="unit"> 天</span></div>
-    <div class="balance-detail" id="balanceDetail"></div>
-  </div>
-  <div class="settings-card">
-    <label>初始调休天数</label>
-    <div class="balance-stepper">
-      <button onclick="adjustInitial(-1)">-</button>
-      <input type="number" id="initialInput" value="0" min="0" style="width:50px" onchange="setInitial(this.value)">
-      <button onclick="adjustInitial(1)">+</button>
+  <!-- ====== 登录/注册界面 ====== -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">📋</div>
+      <h2 id="authTitle">登录</h2>
+      <div class="auth-subtitle">值班调休记录管理</div>
+      <div class="auth-form">
+        <div class="form-group">
+          <label>邮箱</label>
+          <input type="email" id="authEmail" placeholder="your@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" id="authPassword" placeholder="至少6位" autocomplete="current-password">
+        </div>
+        <button class="auth-submit" id="authSubmit" onclick="handleAuth()">登录</button>
+      </div>
+      <div class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">没有账号？去注册</div>
+      <div class="auth-hint">
+        首次使用请先注册账号<br>每个账号的值班调休数据互相隔离
+      </div>
     </div>
   </div>
-  <div class="section">
-    <div class="section-header">
-      <span class="section-title">📋 值班记录</span>
-      <span class="section-count" id="dutyCount"></span>
+  <!-- ====== 主应用界面（登录后显示） ====== -->
+  <div id="mainApp" style="display:none">
+    <div class="header">
+      <h1>值班调休记录</h1>
+      <div class="user-bar">
+        <span class="user-email" id="userEmail"></span>
+        <button class="logout-btn" onclick="signOut()">退出登录</button>
+      </div>
     </div>
-    <div class="record-list" id="dutyList"></div>
-    <button class="add-btn" onclick="showAddModal('duty')">+ 添加值班记录</button>
-  </div>
-  <div class="section">
-    <div class="section-header">
-      <span class="section-title">🏖️ 调休记录</span>
-      <span class="section-count" id="compCount"></span>
+    <div class="balance-card" id="balanceCard">
+      <div class="balance-label">剩余调休天数</div>
+      <div class="balance-number" id="balanceNumber">0<span class="unit"> 天</span></div>
+      <div class="balance-detail" id="balanceDetail"></div>
     </div>
-    <div class="record-list" id="compList"></div>
-    <button class="add-btn comp" onclick="showAddModal('comp')">+ 添加调休记录</button>
-  </div>
-  <div class="data-actions">
-    <button onclick="exportData()">导出数据</button>
-    <label class="import-btn">导入数据<input type="file" accept=".json" onchange="importData(event)"></label>
-    <button class="danger" onclick="clearAllData()">清空数据</button>
-  </div>
-  <div class="hint" id="hintBox">
-    <p>💡 在 Safari 中点击底部「分享」按钮，选择「添加到主屏幕」，即可像 App 一样全屏使用，支持离线。</p>
-    <button onclick="document.getElementById('hintBox').style.display='none';localStorage.setItem('hintDismissed','1')">知道了</button>
+    <div class="settings-card">
+      <label>初始调休天数</label>
+      <div class="balance-stepper">
+        <button onclick="adjustInitial(-1)">-</button>
+        <input type="number" id="initialInput" value="0" min="0" style="width:50px" onchange="setInitial(this.value)">
+        <button onclick="adjustInitial(1)">+</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">📋 值班记录</span>
+        <span class="section-count" id="dutyCount"></span>
+      </div>
+      <div class="record-list" id="dutyList"></div>
+      <button class="add-btn" onclick="showAddModal('duty')">+ 添加值班记录</button>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">🏖️ 调休记录</span>
+        <span class="section-count" id="compCount"></span>
+      </div>
+      <div class="record-list" id="compList"></div>
+      <button class="add-btn comp" onclick="showAddModal('comp')">+ 添加调休记录</button>
+    </div>
+    <div class="data-actions">
+      <button onclick="exportData()">导出数据</button>
+      <label class="import-btn">导入数据<input type="file" accept=".json" onchange="importData(event)"></label>
+      <button class="danger" onclick="clearAllData()">清空数据</button>
+    </div>
+    <div class="hint" id="hintBox">
+      <p>💡 在 Safari 中点击底部「分享」按钮，选择「添加到主屏幕」，即可像 App 一样全屏使用，支持离线。</p>
+      <button onclick="document.getElementById('hintBox').style.display='none';localStorage.setItem('hintDismissed','1')">知道了</button>
+    </div>
   </div>
 </div>
+<!-- ====== 添加/编辑记录弹窗 ====== -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)hideModal()">
   <div class="modal-sheet">
     <div class="modal-header">
@@ -252,6 +350,10 @@ body{
     </div>
   </div>
 </div>
+<!-- ====== Loading 遮罩 ====== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+</div>
 <script>
 (function(){
   'use strict';
@@ -266,135 +368,203 @@ body{
   var data={dutyRecords:[],compRecords:[],initialBalance:0};
   var modalMode='add',modalType='duty',editId=null;
   var selectedDutyDbId=null;
-  // --------离线队列工具函数---------
+  var currentUser=null;
+  var isLoginMode=true;
+
+  // ==================== 用户认证 ====================
+  function showLoading(show){
+    document.getElementById('loadingOverlay').classList.toggle('show',show);
+  }
+  function showAuthScreen(){
+    document.getElementById('authScreen').style.display='flex';
+    document.getElementById('mainApp').style.display='none';
+  }
+  function showMainApp(){
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    if(currentUser){
+      document.getElementById('userEmail').textContent=currentUser.email||'';
+    }
+  }
+  window.toggleAuthMode=function(){
+    isLoginMode=!isLoginMode;
+    document.getElementById('authTitle').textContent=isLoginMode?'登录':'注册';
+    document.getElementById('authSubmit').textContent=isLoginMode?'登录':'注册';
+    document.getElementById('authToggle').textContent=isLoginMode?'没有账号？去注册':'已有账号？去登录';
+  };
+  window.handleAuth=async function(){
+    var email=document.getElementById('authEmail').value.trim();
+    var password=document.getElementById('authPassword').value;
+    if(!email||!password){toast('请输入邮箱和密码');return;}
+    if(password.length<6){toast('密码至少6位');return;}
+    showLoading(true);
+    try{
+      if(isLoginMode){
+        var res=await supabase.auth.signInWithPassword({email:email,password:password});
+        if(res.error){toast(res.error.message||'登录失败');}
+        else{toast('登录成功');}
+      }else{
+        var res2=await supabase.auth.signUp({email:email,password:password});
+        if(res2.error){toast(res2.error.message||'注册失败');}
+        else if(res2.data&&res2.data.session){
+          // 注册后直接登录（未开启邮箱确认时）
+          toast('注册成功，已自动登录');
+        }else{
+          // 开启了邮箱确认
+          toast('注册成功，请查收邮箱确认后登录');
+          toggleAuthMode();
+        }
+      }
+    }catch(e){
+      toast('操作失败，请检查网络');
+    }finally{
+      showLoading(false);
+    }
+  };
+  window.signOut=async function(){
+    if(!confirm('确认退出登录？'))return;
+    await supabase.auth.signOut();
+  };
+  // 回车提交
+  document.getElementById('authPassword').addEventListener('keydown',function(e){
+    if(e.key==='Enter')handleAuth();
+  });
+  document.getElementById('authEmail').addEventListener('keydown',function(e){
+    if(e.key==='Enter')document.getElementById('authPassword').focus();
+  });
+
+  // ==================== 离线队列 ====================
   function getOfflineQueue(){
-    const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    var raw=localStorage.getItem(OFFLINE_QUEUE_KEY);
+    return raw?JSON.parse(raw):[];
   }
   function saveOfflineQueue(q){
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q));
+    localStorage.setItem(OFFLINE_QUEUE_KEY,JSON.stringify(q));
   }
   async function syncOfflineQueue(){
-    const queue = getOfflineQueue();
-    if(!queue.length) return true;
-    let okCount = 0;
-    for(const item of queue){
-      const {error} = await supabase.from("duty_log").insert(item);
-      if(!error) okCount++;
+    var queue=getOfflineQueue();
+    if(!queue.length)return true;
+    var okCount=0;
+    for(var i=0;i<queue.length;i++){
+      var item=queue[i];
+      // 只同步当前用户的离线记录
+      if(currentUser&&item.user_id&&item.user_id!==currentUser.id)continue;
+      var res=await supabase.from("duty_log").insert(item);
+      if(!res.error)okCount++;
     }
     if(okCount>0){
       saveOfflineQueue(queue.slice(okCount));
     }
     return okCount>0;
   }
-  // 从云端拉取全部记录 + 配置
+
+  // ==================== 云端数据读写 ====================
   async function loadCloud(){
-    // 读取记录
-    const {data:rows,error:errRows} = await supabase.from("duty_log").select("*").order("create_at",{asc:false});
-    // 读取初始调休配置 id=1
-    const {data:cfgRows,error:errCfg} = await supabase.from("duty_config").select("*").eq("id",1).limit(1);
-    if(errRows || errCfg){
+    var res1=await supabase.from("duty_log").select("*").order("create_at",{ascending:false});
+    // RLS 自动过滤：只返回当前用户的记录
+    var res2=await supabase.from("duty_config").select("*").limit(1);
+    if(res1.error||res2.error){
       toast("云端读取失败，使用本地缓存");
       return false;
     }
-    // 解析记录
-    data.dutyRecords = [];
-    data.compRecords = [];
-    rows.forEach(r=>{
-      if(r.type === "duty"){
+    var rows=res1.data||[];
+    var cfgRows=res2.data||[];
+    data.dutyRecords=[];
+    data.compRecords=[];
+    rows.forEach(function(r){
+      if(r.type==="duty"){
         data.dutyRecords.push({
-          id: String(r.id),
-          dbId: r.id,
-          date: r.create_at.split('T')[0],
-          note: r.note || "",
-          duty_type: r.duty_type||"工作日夜班",
-          is_used: !!r.is_used,
-          createdAt: r.create_at
-        })
-      }else if(r.type === "rest"){
+          id:String(r.id),dbId:r.id,
+          date:r.create_at.split('T')[0],
+          note:r.note||"",
+          duty_type:r.duty_type||"工作日夜班",
+          is_used:!!r.is_used,
+          createdAt:r.create_at
+        });
+      }else if(r.type==="rest"){
         data.compRecords.push({
-          id: String(r.id),
-          dbId: r.id,
-          date: r.create_at.split('T')[0],
-          note: r.note || "",
-          createdAt: r.create_at
-        })
+          id:String(r.id),dbId:r.id,
+          date:r.create_at.split('T')[0],
+          note:r.note||"",
+          createdAt:r.create_at
+        });
       }
-    })
-    //解析初始调休
-    if(cfgRows && cfgRows.length>0){
-      data.initialBalance = Number(cfgRows[0].initial_balance) || 0;
+    });
+    if(cfgRows.length>0){
+      data.initialBalance=Number(cfgRows[0].initial_balance)||0;
+    }else{
+      data.initialBalance=0;
     }
     localStorage.setItem(KEY,JSON.stringify(data));
     return true;
   }
-  // 保存初始调休天数到云端配置表
   async function saveInitialToCloud(val){
-    const {error} = await supabase.from("duty_config").upsert([{id:1,initial_balance:val}]);
-    if(error){
+    if(!currentUser)return;
+    var payload={user_id:currentUser.id,initial_balance:val};
+    var res=await supabase.from("duty_config").upsert([payload],{onConflict:'user_id'});
+    if(res.error){
       toast("网络异常，初始值暂存本地");
     }
   }
-  //新增一条记录到云端
-  async function addRecordCloud(type,dateStr,note,dutyType,isUsed=false){
-    const rest_change = type === 'duty' ? 1 : -1;
-    const payload = {
-      type: type==='duty'?'duty':'rest',
-      note: note,
+  async function addRecordCloud(type,dateStr,note,dutyType,isUsed){
+    var rest_change=type==='duty'?1:-1;
+    var payload={
+      type:type==='duty'?'duty':'rest',
+      note:note,
       duty_type:dutyType,
-      is_used:isUsed,
-      rest_change: rest_change,
-      create_at: dateStr + "T00:00:00Z"
+      is_used:isUsed||false,
+      rest_change:rest_change,
+      create_at:dateStr+"T00:00:00Z"
+    };
+    if(currentUser){
+      payload.user_id=currentUser.id;
     }
     try{
-      const {error} = await supabase.from("duty_log").insert(payload);
-      if(error) throw error;
-      return {ok:true}
+      var res=await supabase.from("duty_log").insert(payload);
+      if(res.error)throw res.error;
+      return{ok:true};
     }catch(e){
-      //网络失败加入离线队列
-      const q = getOfflineQueue();
+      var q=getOfflineQueue();
       q.push(payload);
       saveOfflineQueue(q);
       toast("网络异常，存入本地队列，联网自动同步");
-      return {ok:false,offline:true}
+      return{ok:false,offline:true};
     }
   }
-  //更新值班记录is_used状态
-  async function updateDutyUsedCloud(dbId, isUsed){
+  async function updateDutyUsedCloud(dbId,isUsed){
     try{
-      const {error}=await supabase.from("duty_log").update({is_used:isUsed}).eq("id",Number(dbId));
-      if(error)throw error;
-      return {ok:true};
+      var res=await supabase.from("duty_log").update({is_used:isUsed}).eq("id",Number(dbId));
+      if(res.error)throw res.error;
+      return{ok:true};
     }catch(e){
       toast("更新值班状态失败");
-      return {ok:false};
+      return{ok:false};
     }
   }
-  //【新增修复】编辑更新云端记录
-  async function updateRecordCloud(dbId, newNote, newDate,newDutyType){
+  async function updateRecordCloud(dbId,newNote,newDate,newDutyType){
     try{
-      const {error} = await supabase.from("duty_log")
-        .update({ note: newNote, create_at: newDate+"T00:00:00Z",duty_type:newDutyType })
-        .eq("id", dbId);
-      if(error) throw error;
-      return {ok:true};
+      var res=await supabase.from("duty_log")
+        .update({note:newNote,create_at:newDate+"T00:00:00Z",duty_type:newDutyType})
+        .eq("id",dbId);
+      if(res.error)throw res.error;
+      return{ok:true};
     }catch(e){
       toast("云端更新失败，请检查网络");
-      return {ok:false};
+      return{ok:false};
     }
   }
-  //删除云端记录【修复bug，使用真实dbId数字主键】
   async function delRecordCloud(dbId){
     try{
-      const {error} = await supabase.from("duty_log").delete().eq("id",Number(dbId));
-      if(error) throw error;
-      return {ok:true}
+      var res=await supabase.from("duty_log").delete().eq("id",Number(dbId));
+      if(res.error)throw res.error;
+      return{ok:true};
     }catch(e){
       toast("删除失败，请检查网络或RLS权限");
-      return {ok:false}
+      return{ok:false};
     }
   }
-  // ---- 原有localStorage读写（降级缓存） ----
+
+  // ==================== 本地缓存 ====================
   function load(){
     try{var s=localStorage.getItem(KEY);if(s){data=JSON.parse(s)}}catch(e){}
   }
@@ -404,7 +574,8 @@ body{
   function balance(){
     return data.initialBalance+data.dutyRecords.length-data.compRecords.length;
   }
-  // ---- Helpers ----
+
+  // ==================== 工具函数 ====================
   function todayStr(){
     var d=new Date();
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -423,7 +594,8 @@ body{
     requestAnimationFrame(function(){t.classList.add('show')});
     setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},1800);
   }
-  // ---- Render ----
+
+  // ==================== 渲染 ====================
   function render(){
     var bal=balance();
     var bn=document.getElementById('balanceNumber');
@@ -448,8 +620,8 @@ body{
     for(var i=0;i<arr.length;i++){
       var r=arr[i];
       if(type==='duty'){
-        const statusText = r.is_used ? "已调休" : "未调休";
-        const statusCls = r.is_used ? "status-used" : "status-unused";
+        var statusText=r.is_used?"已调休":"未调休";
+        var statusCls=r.is_used?"status-used":"status-unused";
         html+='<div class="record-item" onclick="editRecord(\''+type+'\',\''+r.id+'\')">'
           +'<div class="record-date">'+fmtDate(r.date)+'</div>'
           +'<div class="record-note">'+escapeHtml(r.duty_type||r.note||'')+'</div>'
@@ -468,33 +640,32 @@ body{
     }
     el.innerHTML=html;
   }
-  function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-  // ---- Modal ----
+  function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+  // ==================== 弹窗 ====================
   window.showAddModal=function(type){
     modalMode='add';modalType=type;editId=null;selectedDutyDbId=null;
     document.getElementById('modalTitle').textContent=type==='duty'?'添加值班记录':'添加调休记录';
     document.getElementById('recordDate').value=todayStr();
     document.getElementById('recordNote').value='';
     document.getElementById('btnSave').textContent='保存';
-
     if(type==='duty'){
       document.getElementById('dutyTypeWrap').style.display='block';
       document.getElementById('selectDutyWrap').style.display='none';
       document.getElementById('noteInputWrap').style.display='none';
     }else{
-      //调休：填充下拉，只拿未调休值班
       document.getElementById('dutyTypeWrap').style.display='none';
       document.getElementById('selectDutyWrap').style.display='block';
       document.getElementById('noteInputWrap').style.display='none';
-      const sel = document.getElementById("selectDutyItem");
-      sel.innerHTML = "";
-      const unusedList = data.dutyRecords.filter(d=>!d.is_used);
+      var sel=document.getElementById("selectDutyItem");
+      sel.innerHTML="";
+      var unusedList=data.dutyRecords.filter(function(d){return!d.is_used});
       if(unusedList.length===0){
         sel.innerHTML="<option value=''>暂无未调休值班记录</option>";
       }else{
-        unusedList.forEach(d=>{
-          sel.innerHTML += `<option value="${d.dbId}">${fmtDate(d.date)}｜${d.duty_type}</option>`
-        })
+        unusedList.forEach(function(d){
+          sel.innerHTML+='<option value="'+d.dbId+'">'+fmtDate(d.date)+' | '+escapeHtml(d.duty_type)+'</option>';
+        });
       }
     }
     showModal();
@@ -507,12 +678,11 @@ body{
     modalMode='edit';modalType=type;editId=id;
     document.getElementById('modalTitle').textContent=type==='duty'?'编辑值班记录':'编辑调休记录';
     document.getElementById('recordDate').value=r.date;
-
     if(type==='duty'){
       document.getElementById('dutyTypeWrap').style.display='block';
       document.getElementById('selectDutyWrap').style.display='none';
       document.getElementById('noteInputWrap').style.display='none';
-      document.getElementById("dutyType").value = r.duty_type||"工作日夜班";
+      document.getElementById("dutyType").value=r.duty_type||"工作日夜班";
     }else{
       document.getElementById('dutyTypeWrap').style.display='none';
       document.getElementById('selectDutyWrap').style.display='none';
@@ -528,64 +698,50 @@ body{
     var dateVal=document.getElementById('recordDate').value;
     if(!dateVal){toast('请选择日期');return}
     var arr=modalType==='duty'?data.dutyRecords:data.compRecords;
-
     if(modalMode==='add'){
       if(modalType==='duty'){
-        //新增值班
-        const dutyTypeVal = document.getElementById("dutyType").value;
-        const res = await addRecordCloud('duty',dateVal,dutyTypeVal,dutyTypeVal,false);
-        arr.push({
-          id:uid(),date:dateVal,note:dutyTypeVal,
-          duty_type:dutyTypeVal,is_used:false,
-          createdAt:new Date().toISOString()
-        });
+        var dutyTypeVal=document.getElementById("dutyType").value;
+        await addRecordCloud('duty',dateVal,dutyTypeVal,dutyTypeVal,false);
+        arr.push({id:uid(),date:dateVal,note:dutyTypeVal,duty_type:dutyTypeVal,is_used:false,createdAt:new Date().toISOString()});
         save();render();hideModal();
         toast('值班 +1');
         await syncOfflineQueue();
         await loadCloud();render();
       }else{
-        //新增调休
-        const selDbId = document.getElementById("selectDutyItem").value;
+        var selDbId=document.getElementById("selectDutyItem").value;
         if(!selDbId){toast("请选择一条值班记录");return;}
-        //找到对应值班记录
-        const targetDuty = data.dutyRecords.find(x=>x.dbId == selDbId);
+        var targetDuty=data.dutyRecords.find(function(x){return x.dbId==selDbId});
         if(!targetDuty){toast("找不到该值班记录");return;}
-        const noteText = `${fmtDate(targetDuty.date)} 休${targetDuty.duty_type}`;
-        //1、插入调休记录
+        var noteText=fmtDate(targetDuty.date)+' 休'+targetDuty.duty_type;
         await addRecordCloud('rest',dateVal,noteText,"",false);
-        data.compRecords.push({
-          id:uid(),date:dateVal,note:noteText,createdAt:new Date().toISOString()
-        })
-        //2、更新值班标记为已调休
-        targetDuty.is_used = true;
+        data.compRecords.push({id:uid(),date:dateVal,note:noteText,createdAt:new Date().toISOString()});
+        targetDuty.is_used=true;
         await updateDutyUsedCloud(selDbId,true);
-
         save();render();hideModal();
         toast('调休 -1，对应值班标记已调休');
         await syncOfflineQueue();
         await loadCloud();render();
       }
     }else{
-      //编辑模式
-      let targetItem=null;
+      var targetItem=null;
       for(var i=0;i<arr.length;i++){
         if(arr[i].id===editId){
           arr[i].date=dateVal;
-          targetItem = arr[i];
+          targetItem=arr[i];
           break;
         }
       }
       if(modalType==="duty"){
-        const dutyTypeVal = document.getElementById("dutyType").value;
-        targetItem.duty_type = dutyTypeVal;
-        targetItem.note = dutyTypeVal;
+        var dtVal=document.getElementById("dutyType").value;
+        targetItem.duty_type=dtVal;
+        targetItem.note=dtVal;
       }else{
-        targetItem.note = document.getElementById("recordNote").value.trim();
+        targetItem.note=document.getElementById("recordNote").value.trim();
       }
       save();render();hideModal();
-      if(targetItem && targetItem.dbId){
-        let newDutyType = targetItem.duty_type||"";
-        const updateRes = await updateRecordCloud(targetItem.dbId, targetItem.note, dateVal,newDutyType);
+      if(targetItem&&targetItem.dbId){
+        var newDutyType=targetItem.duty_type||"";
+        var updateRes=await updateRecordCloud(targetItem.dbId,targetItem.note,dateVal,newDutyType);
         if(updateRes.ok){
           toast('已保存，同步云端');
           await loadCloud();render();
@@ -601,9 +757,8 @@ body{
     var arr=type==='duty'?data.dutyRecords:data.compRecords;
     var label=type==='duty'?'值班':'调休';
     if(!confirm('确认删除这条'+label+'记录？'))return;
-    const item = arr.find(x=>x.id === id);
-    //修复：使用dbId真实主键删除云端
-    if(item && item.dbId){
+    var item=arr.find(function(x){return x.id===id});
+    if(item&&item.dbId){
       await delRecordCloud(item.dbId);
     }
     if(type==='duty'){data.dutyRecords=data.dutyRecords.filter(function(r){return r.id!==id})}
@@ -611,7 +766,8 @@ body{
     save();render();toast('已删除');
     await loadCloud();render();
   };
-  // ---- Settings ----
+
+  // ==================== 设置 ====================
   window.setInitial=async function(v){
     v=parseInt(v)||0;if(v<0)v=0;data.initialBalance=v;
     save();render();
@@ -623,7 +779,8 @@ body{
     save();render();
     await saveInitialToCloud(data.initialBalance);
   };
-  // ---- Data Management ----
+
+  // ==================== 数据管理 ====================
   window.exportData=function(){
     var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
@@ -649,24 +806,43 @@ body{
     reader.readAsText(f);ev.target.value='';
   };
   window.clearAllData=async function(){
-    if(!confirm('确认清空全部记录？云端数据不会自动清空！'))return;
+    if(!confirm('确认清空全部记录？将删除您的所有值班调休记录！'))return;
+    if(currentUser){
+      await supabase.from("duty_log").delete().eq("user_id",currentUser.id);
+      await supabase.from("duty_config").delete().eq("user_id",currentUser.id);
+    }
     data={dutyRecords:[],compRecords:[],initialBalance:0};
     document.getElementById('initialInput').value=0;
-    save();render();toast('本地已清空，请到Supabase后台删除表内记录');
+    save();render();toast('已清空');
   };
-  // ---- Init 启动入口 ----
+
+  // ==================== 初始化 ====================
   async function init(){
     load();
     document.getElementById('initialInput').value=data.initialBalance;
     if(localStorage.getItem('hintDismissed'))document.getElementById('hintBox').style.display='none';
-    //先同步离线队列
     await syncOfflineQueue();
-    //拉云端
     await loadCloud();
     document.getElementById('initialInput').value=data.initialBalance;
     render();
   }
-  init();
+
+  // ==================== 认证状态监听 ====================
+  supabase.auth.onAuthStateChange(function(event,session){
+    if(session&&session.user){
+      currentUser=session.user;
+      showMainApp();
+      document.getElementById('userEmail').textContent=currentUser.email||'';
+      if(event==='INITIAL_SESSION'||event==='SIGNED_IN'){
+        init();
+      }
+    }else{
+      currentUser=null;
+      data={dutyRecords:[],compRecords:[],initialBalance:0};
+      showAuthScreen();
+    }
+  });
+
   // Prevent body scroll bounce on iOS standalone
   document.addEventListener('touchmove',function(e){
     if(e.target.closest('.modal-overlay')&&!e.target.closest('.modal-sheet'))e.preventDefault();
