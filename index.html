@@ -174,16 +174,16 @@ body{
 /* ===== Modal ===== */
 .modal-overlay{
   position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.4);
-  display:flex;align-items:flex-end;justify-content:center;
+  display:flex;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .25s;
 }
 .modal-overlay.show{opacity:1;pointer-events:auto}
 .modal-sheet{
-  width:100%;max-width:500px;background:var(--card);border-radius:16px 16px 0 0;
-  padding:calc(var(--sb) + 20px) 20px 20px;transform:translateY(100%);
+  width:100%;max-width:500px;background:var(--card);border-radius:16px;
+  padding:20px;transform:scale(0.95);max-height:90vh;overflow-y:auto;
   transition:transform .3s cubic-bezier(.32,.72,0,1);
 }
-.modal-overlay.show .modal-sheet{transform:translateY(0)}
+.modal-overlay.show .modal-sheet{transform:scale(1)}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .modal-header h2{font-size:17px;font-weight:600}
 .modal-close{width:30px;height:30px;border:none;background:none;font-size:18px;color:var(--gray);cursor:pointer}
@@ -991,10 +991,10 @@ body{
     URL.revokeObjectURL(url);
     toast('已导出');
   };
-  window.importData=function(ev){
+  window.importData=async function(ev){
     var f=ev.target.files[0];if(!f)return;
     var reader=new FileReader();
-    reader.onload=function(e){
+    reader.onload=async function(e){
       try{
         var d=JSON.parse(e.target.result);
         if(!Array.isArray(d.dutyRecords)||!Array.isArray(d.compRecords)||typeof d.initialBalance!=='number'){
@@ -1002,6 +1002,62 @@ body{
         }
         if(!confirm('导入将覆盖当前数据，确认继续？'))return;
         data=d;save();render();toast('导入成功');
+        
+        // 同步到云端
+        if(currentUser){
+          showLoading(true);
+          try{
+            // 1. 先清空云端现有数据
+            await supabase.from("duty_log").delete().eq("user_id",currentUser.id);
+            await supabase.from("duty_config").delete().eq("user_id",currentUser.id);
+            
+            // 2. 同步初始天数
+            await saveInitialToCloud(data.initialBalance);
+            
+            // 3. 批量上传值班记录（每批 50 条）
+            var dutyPayloads=[];
+            (data.dutyRecords||[]).forEach(function(r){
+              dutyPayloads.push({
+                type:'duty',
+                note:r.duty_type||r.note||'',
+                duty_type:r.duty_type||'工作日夜班',
+                is_used:!!r.is_used,
+                rest_change:1,
+                create_at:r.date+"T00:00:00Z",
+                user_id:currentUser.id
+              });
+            });
+            if(dutyPayloads.length>0){
+              var res1=await supabase.from("duty_log").insert(dutyPayloads);
+              if(res1.error)throw res1.error;
+            }
+            
+            // 4. 批量上传调休记录
+            var compPayloads=[];
+            (data.compRecords||[]).forEach(function(r){
+              compPayloads.push({
+                type:'rest',
+                note:r.note||'',
+                duty_type:'',
+                is_used:false,
+                rest_change:-1,
+                create_at:r.date+"T00:00:00Z",
+                user_id:currentUser.id
+              });
+            });
+            if(compPayloads.length>0){
+              var res2=await supabase.from("duty_log").insert(compPayloads);
+              if(res2.error)throw res2.error;
+            }
+            
+            toast('云端同步完成');
+            await loadCloud();render();
+          }catch(syncErr){
+            toast('云端同步失败: '+(syncErr.message||'网络异常'));
+          }finally{
+            showLoading(false);
+          }
+        }
       }catch(err){toast('解析失败')}
     };
     reader.readAsText(f);ev.target.value='';
