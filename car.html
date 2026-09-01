@@ -11,6 +11,7 @@
 <title>汽车养护记录</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ==================== CSS Variables ==================== */
 :root{
@@ -1227,27 +1228,18 @@ function exportModule(module){
       return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||''];
     });
   }
-  
-  var csv = '\uFEFF' + title + '\n'; // BOM + title
-  csv += headers.join('\t') + '\n';
-  rows.forEach(function(row){
-    csv += row.map(function(cell){
-      var s = String(cell).replace(/\t/g, ' ').replace(/\n/g, ' ');
-      if(s.indexOf('\t') >= 0 || s.indexOf('\n') >= 0 || s.indexOf(',') >= 0) return '"' + s + '"';
-      return s;
-    }).join('\t') + '\n';
+  // Build xlsx with SheetJS
+  var aoa = [headers].concat(rows);
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  // Set column widths (in characters)
+  var colWidths = headers.map(function(h){
+    return { wch: Math.max(h.length, 12) };
   });
-  
-  var blob = new Blob([csv], {type: 'application/vnd.ms-excel'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = filename + '.xls';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('✅ 已导出：' + filename + '.xls — 请去浏览器「下载」文件夹查找');
+  ws['!cols'] = colWidths;
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, title);
+  XLSX.writeFile(wb, filename + '.xlsx');
+  showToast('✅ 已导出：' + filename + '.xlsx — 请去浏览器「下载」文件夹查找');
 }
 window.exportModule = exportModule;
 
