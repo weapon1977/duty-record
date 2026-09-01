@@ -590,7 +590,7 @@ function renderRecentList(){
 function renderMaintenance(){
   var el = document.getElementById('tab-maintenance');
   var data = allData.maintenance || [];
-  var html = '<div class="section-title"><h2>🔧 保养记录</h2><button class="add-btn" onclick="openModal(\'maintenance\')">+ 添加</button></div>';
+  var html = '<div class="section-title"><h2>🔧 保养记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'maintenance\')">📤 导出</button><button class="add-btn" onclick="openModal(\'maintenance\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('🔧');
     return;
@@ -608,7 +608,7 @@ function renderMaintenance(){
 function renderRepair(){
   var el = document.getElementById('tab-repair');
   var data = allData.repair || [];
-  var html = '<div class="section-title"><h2>🔩 维修记录</h2><button class="add-btn" onclick="openModal(\'repair\')">+ 添加</button></div>';
+  var html = '<div class="section-title"><h2>🔩 维修记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'repair\')">📤 导出</button><button class="add-btn" onclick="openModal(\'repair\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('🔩');
     return;
@@ -629,7 +629,7 @@ function renderRepair(){
 function renderFuel(){
   var el = document.getElementById('tab-fuel');
   var data = allData.fuel || [];
-  var html = '<div class="section-title"><h2>⛽ 加油记录</h2><button class="add-btn" onclick="openModal(\'fuel\')">+ 添加</button></div>';
+  var html = '<div class="section-title"><h2>⛽ 加油记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'fuel\')">📤 导出</button><button class="add-btn" onclick="openModal(\'fuel\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('⛽');
     return;
@@ -646,7 +646,7 @@ function renderFuel(){
 function renderInsurance(){
   var el = document.getElementById('tab-insurance');
   var data = allData.insurance || [];
-  var html = '<div class="section-title"><h2>📋 保险记录</h2><button class="add-btn" onclick="openModal(\'insurance\')">+ 添加</button></div>';
+  var html = '<div class="section-title"><h2>📋 保险记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'insurance\')">📤 导出</button><button class="add-btn" onclick="openModal(\'insurance\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('📋');
     return;
@@ -664,7 +664,7 @@ function renderInsurance(){
 function renderViolation(){
   var el = document.getElementById('tab-violation');
   var data = allData.violation || [];
-  var html = '<div class="section-title"><h2>⚠️ 违章记录</h2><button class="add-btn" onclick="openModal(\'violation\')">+ 添加</button></div>';
+  var html = '<div class="section-title"><h2>⚠️ 违章记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'violation\')">📤 导出</button><button class="add-btn" onclick="openModal(\'violation\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('⚠️');
     return;
@@ -682,7 +682,7 @@ function renderViolation(){
 function renderInspection(){
   var el = document.getElementById('tab-inspection');
   var data = allData.inspection || [];
-  var html = '<div class="section-title"><h2>📅 年检记录</h2><button class="add-btn" onclick="openModal(\'inspection\')">+ 添加</button></div>';
+  var html = '<div class="section-title"><h2>📅 年检记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'inspection\')">📤 导出</button><button class="add-btn" onclick="openModal(\'inspection\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('📅');
     return;
@@ -1175,6 +1175,81 @@ function initFuelCalc(){
   liters.addEventListener('input', calc);
   price.addEventListener('input', calc);
 }
+
+// ==================== Export Excel ====================
+function exportModule(module){
+  var data = allData[module] || [];
+  if(data.length === 0){ showToast('没有记录可导出', 'error'); return; }
+  
+  var headers, rows, filename, title;
+  
+  if(module === 'maintenance'){
+    title = '保养记录';
+    filename = '保养记录_' + todayStr();
+    headers = ['日期','里程(km)','保养项目','店铺','费用(元)','备注'];
+    rows = data.map(function(r){
+      return [formatDate(r.service_date), r.mileage||'', (r.items||[]).join('、'), r.shop||'', r.cost||0, r.notes||''];
+    });
+  } else if(module === 'repair'){
+    title = '维修记录';
+    filename = '维修记录_' + todayStr();
+    headers = ['日期','里程(km)','故障描述','维修项目','零件及费用','店铺','总费用(元)','备注'];
+    rows = data.map(function(r){
+      var partsStr = (r.parts||[]).map(function(p){ return (p.name||'') + ':' + (p.cost||0); }).join('; ');
+      return [formatDate(r.repair_date), r.mileage||'', r.issue_description||'', r.repair_items||'', partsStr, r.shop||'', r.total_cost||0, r.notes||''];
+    });
+  } else if(module === 'fuel'){
+    title = '加油记录';
+    filename = '加油记录_' + todayStr();
+    headers = ['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站'];
+    rows = data.map(function(r){
+      return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||''];
+    });
+  } else if(module === 'insurance'){
+    title = '保险记录';
+    filename = '保险记录_' + todayStr();
+    headers = ['险种','保险公司','起保日期','到期日期','保费(元)','保单号','理赔记录'];
+    rows = data.map(function(r){
+      return [r.insurance_type||'', r.company||'', formatDate(r.start_date), r.end_date?formatDate(r.end_date):'长期', r.premium||0, r.policy_number||'', r.claim_records||''];
+    });
+  } else if(module === 'violation'){
+    title = '违章记录';
+    filename = '违章记录_' + todayStr();
+    headers = ['日期','违章类型','地点','罚款(元)','扣分','状态','备注'];
+    rows = data.map(function(r){
+      return [formatDate(r.violation_date), r.violation_type||'', r.location||'', r.fine_amount||0, r.demerit_points||0, r.status||'', r.notes||''];
+    });
+  } else if(module === 'inspection'){
+    title = '年检记录';
+    filename = '年检记录_' + todayStr();
+    headers = ['检测日期','结果','下次到期','费用(元)','备注'];
+    rows = data.map(function(r){
+      return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||''];
+    });
+  }
+  
+  var csv = '\uFEFF' + title + '\n'; // BOM + title
+  csv += headers.join('\t') + '\n';
+  rows.forEach(function(row){
+    csv += row.map(function(cell){
+      var s = String(cell).replace(/\t/g, ' ').replace(/\n/g, ' ');
+      if(s.indexOf('\t') >= 0 || s.indexOf('\n') >= 0 || s.indexOf(',') >= 0) return '"' + s + '"';
+      return s;
+    }).join('\t') + '\n';
+  });
+  
+  var blob = new Blob([csv], {type: 'application/vnd.ms-excel'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename + '.xls';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 已导出：' + filename + '.xls — 请去浏览器「下载」文件夹查找');
+}
+window.exportModule = exportModule;
 
 // ==================== Boot ====================
 function boot(){
