@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="汽车养护记录">
+<meta name="theme-color" content="#0ea5e9">
+<title>汽车养护记录</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+/* ==================== CSS Variables ==================== */
+:root{
+  --primary:#0ea5e9;--primary-dark:#0284c7;--primary-light:#e0f2fe;
+  --bg:#f0f4f8;--card:#ffffff;--text:#1e293b;--text-2nd:#64748b;
+  --border:#e2e8f0;--success:#16a34a;--success-bg:#dcfce7;
+  --warning:#f59e0b;--warning-bg:#fef3c7;
+  --danger:#dc2626;--danger-bg:#fee2e2;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* ==================== Loading ==================== */
+#loadingOverlay{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#loadingOverlay .spinner{width:40px;height:40px;border:3px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ==================== Login ==================== */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#0ea5e9,#0284c7);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-card{background:#fff;border-radius:20px;padding:40px 32px;width:90%;max-width:380px;box-shadow:var(--shadow-lg)}
+.login-card .logo{text-align:center;margin-bottom:28px}
+.login-card .logo .icon{font-size:56px}
+.login-card .logo h1{font-size:22px;font-weight:700;color:var(--text);margin-top:8px}
+.login-card .logo p{font-size:13px;color:var(--text-2nd);margin-top:4px}
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:13px;font-weight:600;color:var(--text-2nd);margin-bottom:6px}
+.input-group input,.input-group select,.input-group textarea{
+  width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;
+  font-size:15px;color:var(--text);background:#fff;transition:border .2s;outline:none;font-family:inherit}
+.input-group input:focus,.input-group select:focus,.input-group textarea:focus{border-color:var(--primary)}
+.input-group textarea{resize:vertical;min-height:60px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-primary{background:var(--primary);color:#fff;width:100%}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.login-error{color:var(--danger);font-size:13px;text-align:center;margin-top:12px;min-height:20px}
+
+/* ==================== Main App ==================== */
+#app{display:none}
+#app.active{display:block}
+
+/* Header */
+.app-header{position:sticky;top:0;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.app-header .title{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+.app-header .vehicle-badge{font-size:12px;opacity:.9;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:20px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.app-header .header-actions{display:flex;gap:8px}
+.icon-btn{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:background .2s}
+.icon-btn:hover{background:rgba(255,255,255,.3)}
+.icon-btn:active{transform:scale(.92)}
+
+/* Tabs */
+.tab-nav{display:flex;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:57px;z-index:40}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-item{flex:0 0 auto;padding:12px 16px;font-size:14px;font-weight:500;color:var(--text-2nd);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tab-item.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+.tab-item:active{opacity:.7}
+
+/* Content */
+.tab-content{display:none;padding:16px;max-width:900px;margin:0 auto}
+.tab-content.active{display:block}
+
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+
+/* Section Title */
+.section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title h2{font-size:17px;font-weight:700}
+.add-btn{background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;transition:background .2s;font-family:inherit}
+.add-btn:hover{background:var(--primary-dark)}
+.add-btn:active{transform:scale(.97)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:500px}
+thead th{background:#f8fafc;padding:10px 12px;text-align:left;font-weight:600;color:var(--text-2nd);border-bottom:2px solid var(--border);font-size:12px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f8fafc}
+.row-actions{display:flex;gap:6px}
+.row-actions button{border:none;width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.action-edit{background:var(--primary-light);color:var(--primary-dark)}
+.action-edit:hover{background:#bae6fd}
+.action-del{background:var(--danger-bg);color:var(--danger)}
+.action-del:hover{background:#fecaca}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+.badge-success{background:var(--success-bg);color:var(--success)}
+.badge-warning{background:var(--warning-bg);color:var(--warning)}
+.badge-danger{background:var(--danger-bg);color:var(--danger)}
+.badge-info{background:var(--primary-light);color:var(--primary-dark)}
+.tag{display:inline-block;background:var(--primary-light);color:var(--primary-dark);padding:2px 8px;border-radius:6px;font-size:12px;margin:2px}
+.empty{text-align:center;padding:40px 20px;color:var(--text-2nd)}
+.empty .icon{font-size:48px;margin-bottom:8px}
+.empty p{font-size:14px}
+
+/* Dashboard */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);text-align:center}
+.stat-card .label{font-size:12px;color:var(--text-2nd);margin-bottom:4px}
+.stat-card .value{font-size:24px;font-weight:700;color:var(--text)}
+.stat-card .value.cost{color:var(--primary)}
+.chart-container{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.chart-container h3{font-size:15px;font-weight:600;margin-bottom:12px}
+.recent-list{background:#fff;border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.recent-list h3{font-size:15px;font-weight:600;margin-bottom:12px}
+.recent-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.recent-item:last-child{border-bottom:none}
+.recent-item .r-icon{font-size:20px}
+.recent-item .r-info{flex:1}
+.recent-item .r-title{font-size:14px;font-weight:500}
+.recent-item .r-date{font-size:12px;color:var(--text-2nd)}
+.recent-item .r-cost{font-size:14px;font-weight:600;color:var(--primary-dark)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;width:100%;max-width:500px;border-radius:16px 16px 0 0;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-header{position:sticky;top:0;background:#fff;padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;z-index:1}
+.modal-header h3{font-size:17px;font-weight:700}
+.modal-close{border:none;background:none;font-size:22px;cursor:pointer;color:var(--text-2nd);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.modal-close:hover{background:#f1f5f9}
+.modal-body{padding:20px}
+.form-row{display:flex;gap:12px}
+.form-row .input-group{flex:1}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px}
+.checkbox-tag{display:flex;align-items:center;gap:4px;padding:6px 12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s;user-select:none}
+.checkbox-tag input{display:none}
+.checkbox-tag.checked{background:var(--primary-light);border-color:var(--primary);color:var(--primary-dark);font-weight:600}
+.parts-list{margin-bottom:8px}
+.part-row{display:flex;gap:8px;margin-bottom:6px;align-items:center}
+.part-row input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;font-family:inherit}
+.part-row input:focus{border-color:var(--primary)}
+.part-row .part-cost{max-width:90px}
+.part-row .remove-part{border:none;background:var(--danger-bg);color:var(--danger);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:16px;flex-shrink:0}
+.add-part-btn{border:1.5px dashed var(--border);background:none;padding:8px;border-radius:8px;color:var(--text-2nd);cursor:pointer;font-size:13px;width:100%;transition:all .2s;font-family:inherit}
+.add-part-btn:hover{border-color:var(--primary);color:var(--primary)}
+.modal-footer{position:sticky;bottom:0;background:#fff;padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.btn-secondary{flex:1;background:#f1f5f9;color:var(--text);border:none;padding:12px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-secondary:hover{background:#e2e8f0}
+.modal-footer .btn-primary{flex:1}
+
+/* Toast */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;z-index:999;display:none;white-space:nowrap}
+#toast.show{display:block;animation:toastIn .3s}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Cost display */
+.cost{font-weight:600;color:var(--primary-dark)}
+
+/* Vehicle info form */
+.vehicle-form{max-width:500px;margin:0 auto}
+
+/* Responsive */
+@media(min-width:768px){
+  .modal-overlay{align-items:center}
+  .modal{border-radius:16px}
+  .tab-content{padding:20px}
+}
+
+@media(max-width:480px){
+  .app-header .title{font-size:15px}
+  .app-header .vehicle-badge{display:none}
+  .stat-card .value{font-size:20px}
+}
+
+/* Change Password Modal */
+.pw-hint{font-size:12px;color:var(--text-2nd);margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <p style="color:#64748b;font-size:14px">正在加载...</p>
+</div>
+
+<!-- Login Screen -->
+<div id="loginScreen" style="display:none">
+  <div class="login-card">
+    <div class="logo">
+      <div class="icon">🚗</div>
+      <h1>汽车养护记录</h1>
+      <p>保养 · 维修 · 加油 · 保险 · 违章 · 年检</p>
+    </div>
+    <div class="input-group">
+      <label>登录密码</label>
+      <input type="password" id="loginPassword" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="loginBtn" onclick="handleLogin()">进入系统</button>
+    <div class="login-error" id="loginError"></div>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8">默认密码：admin123（登录后请修改）</p>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="title">
+      <span>🚗</span>
+      <span>汽车养护记录</span>
+      <span class="vehicle-badge" id="vehicleBadge"></span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="openPwModal()" title="修改密码">🔑</button>
+      <button class="icon-btn" onclick="handleLogout()" title="退出">🚪</button>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav" id="tabNav">
+    <div class="tab-item active" data-tab="dashboard">📊 看板</div>
+    <div class="tab-item" data-tab="maintenance">🔧 保养</div>
+    <div class="tab-item" data-tab="repair">🔩 维修</div>
+    <div class="tab-item" data-tab="fuel">⛽ 加油</div>
+    <div class="tab-item" data-tab="insurance">📋 保险</div>
+    <div class="tab-item" data-tab="violation">⚠️ 违章</div>
+    <div class="tab-item" data-tab="inspection">📅 年检</div>
+    <div class="tab-item" data-tab="vehicle">🚗 车辆</div>
+  </div>
+
+  <!-- Tab Contents -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="chart-container"><h3>📊 月度费用分布</h3><canvas id="monthlyChart" style="max-height:280px"></canvas></div>
+    <div class="chart-container"><h3>⛽ 油耗趋势</h3><canvas id="fuelChart" style="max-height:280px"></canvas></div>
+    <div class="recent-list"><h3>📋 最近记录</h3><div id="recentList"></div></div>
+  </div>
+
+  <div class="tab-content" id="tab-maintenance"></div>
+  <div class="tab-content" id="tab-repair"></div>
+  <div class="tab-content" id="tab-fuel"></div>
+  <div class="tab-content" id="tab-insurance"></div>
+  <div class="tab-content" id="tab-violation"></div>
+  <div class="tab-content" id="tab-inspection"></div>
+  <div class="tab-content" id="tab-vehicle"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">添加记录</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModalRecord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="pwModalOverlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h3>修改密码</h3>
+      <button class="modal-close" onclick="closePwModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label>当前密码</label>
+        <input type="password" id="pwOld" placeholder="请输入当前密码">
+      </div>
+      <div class="input-group">
+        <label>新密码</label>
+        <input type="password" id="pwNew" placeholder="请输入新密码">
+        <p class="pw-hint">至少 6 位</p>
+      </div>
+      <div class="input-group">
+        <label>确认新密码</label>
+        <input type="password" id="pwConfirm" placeholder="请再次输入新密码">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closePwModal()">取消</button>
+      <button class="btn btn-primary" onclick="handleChangePw()">确认修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+// ==================== Supabase ====================
+const SUPABASE_URL = "https://zotnonwudryjspkkbugl.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_OfgEnMd4ouQ6gY3sXqJ2XQ_95tIEh0Y";
+const SESSION_KEY = 'car_maintenance_session';
+var supabase = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch(e) {
+  console.error('Supabase init failed:', e.message);
+}
+
+// ==================== State ====================
+var currentTab = 'dashboard';
+var editingModule = null;
+var editingId = null;
+var allData = {};
+var monthlyChart = null;
+var fuelChart = null;
+var pendingParts = [];
+
+// ==================== Auth ====================
+function isLoggedIn(){
+  var s = localStorage.getItem(SESSION_KEY);
+  if(!s) return false;
+  try{ var d = JSON.parse(s); return d.loginTime && (Date.now() - d.loginTime < 7*24*3600*1000); }
+  catch(e){ return false; }
+}
+
+async function handleLogin(){
+  var pw = document.getElementById('loginPassword').value;
+  var errEl = document.getElementById('loginError');
+  var btn = document.getElementById('loginBtn');
+  if(!pw){ errEl.textContent = '请输入密码'; return; }
+  btn.disabled = true; btn.textContent = '验证中...'; errEl.textContent = '';
+  try{
+    var { data, error } = await supabase.rpc('verify_car_login', { p_password: pw });
+    if(error) throw error;
+    if(data === true){
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ loginTime: Date.now() }));
+      showApp();
+    } else {
+      errEl.textContent = '密码错误，请重试';
+      document.getElementById('loginPassword').select();
+    }
+  } catch(e){
+    errEl.textContent = '连接失败：' + (e.message || '未知错误');
+  } finally {
+    btn.disabled = false; btn.textContent = '进入系统';
+  }
+}
+window.handleLogin = handleLogin;
+
+function handleLogout(){
+  localStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+window.handleLogout = handleLogout;
+
+function showLogin(){
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('loginPassword').focus();
+}
+
+function showApp(){
+  document.getElementById('loadingOverlay').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  init();
+}
+
+// ==================== Tab Switching ====================
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab-item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(function(el){
+    el.classList.toggle('active', el.id === 'tab-' + tab);
+  });
+  var el = document.getElementById('tab-' + tab);
+  el.scrollTop = 0;
+}
+
+// ==================== Init ====================
+async function init(){
+  // Tab events
+  document.querySelectorAll('.tab-item').forEach(function(el){
+    el.addEventListener('click', function(){ switchTab(el.dataset.tab); });
+  });
+  await loadVehicleBadge();
+  await loadAllData();
+  renderDashboard();
+  renderMaintenance();
+  renderRepair();
+  renderFuel();
+  renderInsurance();
+  renderViolation();
+  renderInspection();
+  renderVehicle();
+}
+
+// ==================== Data Loading ====================
+async function loadAllData(){
+  var tables = ['car_vehicle','car_maintenance','car_repair','car_fuel','car_insurance','car_violation','car_inspection'];
+  for(var i=0; i<tables.length; i++){
+    var t = tables[i];
+    var key = t.replace('car_','');
+    var { data, error } = await supabase.from(t).select('*').order('id',{ascending:false});
+    if(!error) allData[key] = data || [];
+    else allData[key] = [];
+  }
+}
+
+async function loadVehicleBadge(){
+  var { data } = await supabase.from('car_vehicle').select('*').limit(1);
+  if(data && data.length > 0){
+    var v = data[0];
+    var txt = (v.brand || '') + (v.model ? ' ' + v.model : '') + (v.plate_number ? ' · ' + v.plate_number : '');
+    document.getElementById('vehicleBadge').textContent = txt.trim();
+  }
+}
+
+async function reloadModule(module){
+  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', violation:'car_violation', inspection:'car_inspection' };
+  var table = tableMap[module];
+  if(!table) return;
+  var { data } = await supabase.from(table).select('*').order('id',{ascending:false});
+  allData[module] = data || [];
+}
+
+// ==================== Dashboard ====================
+function renderDashboard(){
+  var now = new Date();
+  var ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var yy = now.getFullYear();
+  
+  var totalCost = 0, monthCost = 0, yearCost = 0;
+  var fuelCount = 0;
+  
+  // Calculate costs
+  ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
+    if(!allData[mod]) return;
+    allData[mod].forEach(function(r){
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || 0);
+      totalCost += cost;
+      var d = (r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,7);
+      if(d === ym) monthCost += cost;
+      var y = (r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,4);
+      if(parseInt(y) === yy) yearCost += cost;
+    });
+    if(mod === 'fuel') fuelCount = (allData[mod]||[]).length;
+  });
+  
+  // Stat cards
+  document.getElementById('statGrid').innerHTML = 
+    statCard('本月花费', formatMoney(monthCost), 'cost') +
+    statCard('本年花费', formatMoney(yearCost), 'cost') +
+    statCard('累计花费', formatMoney(totalCost), 'cost') +
+    statCard('加油次数', fuelCount + '次', '');
+  
+  // Monthly chart
+  renderMonthlyChart();
+  // Fuel chart
+  renderFuelChart();
+  // Recent list
+  renderRecentList();
+}
+
+function statCard(label, value, cls){
+  return '<div class="stat-card"><div class="label">'+label+'</div><div class="value '+(cls||'')+'">'+value+'</div></div>';
+}
+
+function renderMonthlyChart(){
+  var months = {};
+  var now = new Date();
+  for(var i=5; i>=0; i--){
+    var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { maintenance:0, repair:0, fuel:0, other:0 };
+  }
+  
+  ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
+    if(!allData[mod]) return;
+    allData[mod].forEach(function(r){
+      var dateField = r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '';
+      var ym = dateField.substring(0,7);
+      if(!months[ym]) return;
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || 0);
+      if(mod === 'maintenance') months[ym].maintenance += cost;
+      else if(mod === 'repair') months[ym].repair += cost;
+      else if(mod === 'fuel') months[ym].fuel += cost;
+      else months[ym].other += cost;
+    });
+  });
+  
+  var labels = Object.keys(months);
+  var ctx = document.getElementById('monthlyChart').getContext('2d');
+  if(monthlyChart) monthlyChart.destroy();
+  monthlyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels.map(function(m){ return m.substring(5); }),
+      datasets: [
+        { label:'保养', data:labels.map(function(m){return months[m].maintenance;}), backgroundColor:'#0ea5e9' },
+        { label:'维修', data:labels.map(function(m){return months[m].repair;}), backgroundColor:'#f59e0b' },
+        { label:'加油', data:labels.map(function(m){return months[m].fuel;}), backgroundColor:'#16a34a' },
+        { label:'其他', data:labels.map(function(m){return months[m].other;}), backgroundColor:'#94a3b8' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'bottom', labels:{boxWidth:12,padding:8,font:{size:11} } } },
+      scales: { x:{stacked:true,grid:{display:false}}, y:{stacked:true,beginAtZero:true,ticks:{callback:function(v){return v>0?v:'';}}} }
+    }
+  });
+}
+
+function renderFuelChart(){
+  var fuels = (allData.fuel || []).slice().sort(function(a,b){
+    return (a.fuel_date||'').localeCompare(b.fuel_date||'');
+  }).slice(-12);
+  
+  var labels = fuels.map(function(f){ return (f.fuel_date||'').substring(5); });
+  var data = fuels.map(function(f){
+    var liters = parseFloat(f.liters || 0);
+    var prevMile = null;
+    var idx = fuels.indexOf(f);
+    if(idx > 0) prevMile = fuels[idx-1].mileage;
+    if(prevMile && f.mileage && liters > 0){
+      var dist = f.mileage - prevMile;
+      if(dist > 0) return Math.round(liters / dist * 100 * 10) / 10;
+    }
+    return null;
+  });
+  
+  var ctx = document.getElementById('fuelChart').getContext('2d');
+  if(fuelChart) fuelChart.destroy();
+  fuelChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: labels, datasets:[{ label:'百公里油耗(L)', data:data, borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.1)', fill:true, tension:.3, pointRadius:4, pointBackgroundColor:'#0ea5e9' }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{beginAtZero:true,ticks:{callback:function(v){return v+'L';}}} }
+    }
+  });
+}
+
+function renderRecentList(){
+  var items = [];
+  ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
+    if(!allData[mod]) return;
+    allData[mod].forEach(function(r){
+      var date = r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '';
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || 0);
+      var icon = { maintenance:'🔧', repair:'🔩', fuel:'⛽', insurance:'📋', violation:'⚠️', inspection:'📅' }[mod];
+      var title = '';
+      if(mod === 'maintenance') title = (r.items && r.items.length ? r.items.join('、') : '保养');
+      else if(mod === 'repair') title = r.issue_description || '维修';
+      else if(mod === 'fuel') title = r.fuel_type + ' ' + (r.liters||0) + 'L';
+      else if(mod === 'insurance') title = r.insurance_type || '保险';
+      else if(mod === 'violation') title = r.violation_type || '违章';
+      else if(mod === 'inspection') title = '年检' + (r.result === '通过' ? '通过' : '未通过');
+      items.push({ date:date, icon:icon, title:title, cost:cost });
+    });
+  });
+  items.sort(function(a,b){ return b.date.localeCompare(a.date); });
+  items = items.slice(0, 10);
+  
+  if(items.length === 0){
+    document.getElementById('recentList').innerHTML = '<div class="empty"><div class="icon">📭</div><p>暂无记录，去添加吧！</p></div>';
+    return;
+  }
+  
+  var html = items.map(function(it){
+    return '<div class="recent-item"><span class="r-icon">'+it.icon+'</span><div class="r-info"><div class="r-title">'+escapeHtml(it.title)+'</div><div class="r-date">'+formatDate(it.date)+'</div></div><span class="r-cost">'+(it.cost>0?formatMoney(it.cost):'')+'</span></div>';
+  }).join('');
+  document.getElementById('recentList').innerHTML = html;
+}
+
+// ==================== Maintenance ====================
+function renderMaintenance(){
+  var el = document.getElementById('tab-maintenance');
+  var data = allData.maintenance || [];
+  var html = '<div class="section-title"><h2>🔧 保养记录</h2><button class="add-btn" onclick="openModal(\'maintenance\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('🔧');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>保养项目</th><th>店铺</th><th>费用</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    var items = (r.items && r.items.length) ? r.items.map(function(i){return '<span class="tag">'+escapeHtml(i)+'</span>';}).join('') : '-';
+    html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ==================== Repair ====================
+function renderRepair(){
+  var el = document.getElementById('tab-repair');
+  var data = allData.repair || [];
+  var html = '<div class="section-title"><h2>🔩 维修记录</h2><button class="add-btn" onclick="openModal(\'repair\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('🔩');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>故障描述</th><th>维修项目</th><th>店铺</th><th>费用</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    var partsText = '';
+    if(r.parts && r.parts.length){
+      partsText = r.parts.map(function(p){ return escapeHtml(p.name||'') + '('+formatMoney(p.cost||0)+')'; }).join(' ');
+    }
+    html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ==================== Fuel ====================
+function renderFuel(){
+  var el = document.getElementById('tab-fuel');
+  var data = allData.fuel || [];
+  var html = '<div class="section-title"><h2>⛽ 加油记录</h2><button class="add-btn" onclick="openModal(\'fuel\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('⛽');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>油品</th><th>升数</th><th>单价</th><th>总价</th><th>加油站</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td><span class="badge badge-info">'+escapeHtml(r.fuel_type||'-')+'</span></td><td>'+(r.liters||0)+' L</td><td>'+(r.price_per_liter||0)+' 元/L</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+escapeHtml(r.station||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ==================== Insurance ====================
+function renderInsurance(){
+  var el = document.getElementById('tab-insurance');
+  var data = allData.insurance || [];
+  var html = '<div class="section-title"><h2>📋 保险记录</h2><button class="add-btn" onclick="openModal(\'insurance\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('📋');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>险种</th><th>保险公司</th><th>起止日期</th><th>保费</th><th>保单号</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    var dateRange = formatDate(r.start_date) + ' ~ ' + (r.end_date?formatDate(r.end_date):'长期');
+    html += '<tr><td>'+escapeHtml(r.insurance_type||'-')+'</td><td>'+escapeHtml(r.company||'-')+'</td><td style="font-size:12px">'+dateRange+'</td><td class="cost">'+formatMoney(r.premium)+'</td><td style="font-size:12px">'+escapeHtml(r.policy_number||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'insurance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'insurance\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ==================== Violation ====================
+function renderViolation(){
+  var el = document.getElementById('tab-violation');
+  var data = allData.violation || [];
+  var html = '<div class="section-title"><h2>⚠️ 违章记录</h2><button class="add-btn" onclick="openModal(\'violation\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('⚠️');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>地点</th><th>罚款</th><th>扣分</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    var badge = r.status === '已处理' ? 'badge-success' : 'badge-danger';
+    html += '<tr><td>'+formatDate(r.violation_date)+'</td><td>'+escapeHtml(r.violation_type||'-')+'</td><td style="font-size:12px">'+escapeHtml(r.location||'-')+'</td><td class="cost">'+formatMoney(r.fine_amount)+'</td><td>'+(r.demerit_points||0)+' 分</td><td><span class="badge '+badge+'">'+escapeHtml(r.status)+'</span></td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'violation\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'violation\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ==================== Inspection ====================
+function renderInspection(){
+  var el = document.getElementById('tab-inspection');
+  var data = allData.inspection || [];
+  var html = '<div class="section-title"><h2>📅 年检记录</h2><button class="add-btn" onclick="openModal(\'inspection\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('📅');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>检测日期</th><th>结果</th><th>下次到期</th><th>费用</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    var badge = r.result === '通过' ? 'badge-success' : 'badge-danger';
+    html += '<tr><td>'+formatDate(r.inspection_date)+'</td><td><span class="badge '+badge+'">'+escapeHtml(r.result)+'</span></td><td style="font-size:12px">'+(r.next_due_date?formatDate(r.next_due_date):'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'inspection\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'inspection\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// ==================== Vehicle ====================
+function renderVehicle(){
+  var el = document.getElementById('tab-vehicle');
+  var v = (allData.vehicle && allData.vehicle.length > 0) ? allData.vehicle[0] : {};
+  el.innerHTML = 
+    '<div class="section-title"><h2>🚗 车辆信息</h2></div>' +
+    '<div class="card vehicle-form">' +
+    formGroup('brand', '品牌', v.brand || '', '如：丰田') +
+    formGroup('model', '车型', v.model || '', '如：凯美瑞 2.5G') +
+    formGroup('plate_number', '车牌号', v.plate_number || '', '如：粤A12345') +
+    formGroup('vin', '车架号(VIN)', v.vin || '', '17位车辆识别码') +
+    '<div class="form-row">' +
+      formGroup('purchase_date', '购买日期', v.purchase_date || '', '', 'date') +
+      formGroup('purchase_price', '购买价格', v.purchase_price || '', '元', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>备注</label><textarea id="v_notes" placeholder="如：颜色、配置等">'+escapeHtml(v.notes||'')+'</textarea></div>' +
+    '<button class="btn btn-primary" style="margin-top:8px" onclick="saveVehicle('+(v.id||0)+')">保存车辆信息</button>' +
+    '</div>';
+}
+
+function saveVehicle(id){
+  var data = {
+    brand: val('v_brand'),
+    model: val('v_model'),
+    plate_number: val('v_plate_number'),
+    vin: val('v_vin'),
+    purchase_date: val('v_purchase_date') || null,
+    purchase_price: parseFloat(val('v_purchase_price')) || 0,
+    notes: val('v_notes'),
+    updated_at: new Date().toISOString()
+  };
+  saveVehicleAsync(id, data);
+}
+window.saveVehicle = saveVehicle;
+
+async function saveVehicleAsync(id, data){
+  try{
+    if(id){
+      var { error } = await supabase.from('car_vehicle').update(data).eq('id', id);
+    } else {
+      var { error } = await supabase.from('car_vehicle').insert(data);
+    }
+    if(error) throw error;
+    showToast('保存成功');
+    var { data:vd } = await supabase.from('car_vehicle').select('*').limit(1);
+    allData.vehicle = vd || [];
+    await loadVehicleBadge();
+    renderVehicle();
+  } catch(e){
+    showToast('保存失败：'+(e.message||''), 'error');
+  }
+}
+
+// ==================== Modal Forms ====================
+function openModal(module, id){
+  editingModule = module;
+  editingId = id || null;
+  var title = id ? '编辑' + moduleTitle(module) : '添加' + moduleTitle(module);
+  document.getElementById('modalTitle').textContent = title;
+  var body = document.getElementById('modalBody');
+  
+  if(module === 'maintenance') body.innerHTML = maintenanceForm(id);
+  else if(module === 'repair') body.innerHTML = repairForm(id);
+  else if(module === 'fuel') body.innerHTML = fuelForm(id);
+  else if(module === 'insurance') body.innerHTML = insuranceForm(id);
+  else if(module === 'violation') body.innerHTML = violationForm(id);
+  else if(module === 'inspection') body.innerHTML = inspectionForm(id);
+  
+  document.getElementById('modalOverlay').classList.add('active');
+  
+  // Init checkbox tags
+  if(module === 'maintenance') initCheckboxTags();
+  if(module === 'repair') initPartsList();
+  if(module === 'fuel') initFuelCalc();
+}
+window.openModal = openModal;
+
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('active');
+  editingModule = null;
+  editingId = null;
+}
+window.closeModal = closeModal;
+
+function moduleTitle(mod){
+  return { maintenance:'保养记录', repair:'维修记录', fuel:'加油记录', insurance:'保险记录', violation:'违章记录', inspection:'年检记录' }[mod] || '记录';
+}
+
+// --- Maintenance Form ---
+function maintenanceForm(id){
+  var r = id ? findRecord('maintenance', id) : {};
+  var items = ['机油','机滤','空滤','空调滤芯','火花塞','刹车片','刹车油','变速箱油','防冻液','轮胎','电瓶','雨刮','四轮定位','节气门清洗'];
+  var selected = r.items || [];
+  var html = 
+    '<div class="form-row">' +
+      ig('m_date','日期', r.service_date || todayStr(), 'date') +
+      ig('m_mileage','里程(km)', r.mileage || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>保养项目</label><div class="checkbox-group" id="m_items">' +
+      items.map(function(it){
+        var chk = selected.indexOf(it) >= 0 ? 'checked' : '';
+        return '<label class="checkbox-tag '+chk+'" onclick="toggleCheckbox(this)"><input type="checkbox" value="'+it+'" '+chk+'>'+it+'</label>';
+      }).join('') +
+    '</div></div>' +
+    ig('m_shop','保养店铺', r.shop || '') +
+    '<div class="form-row">' +
+      ig('m_cost','费用(元)', r.cost || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>备注</label><textarea id="m_notes" placeholder="其他说明">'+escapeHtml(r.notes||'')+'</textarea></div>';
+  return html;
+}
+
+// --- Repair Form ---
+function repairForm(id){
+  var r = id ? findRecord('repair', id) : {};
+  pendingParts = r.parts || [];
+  var html = 
+    '<div class="form-row">' +
+      ig('r_date','日期', r.repair_date || todayStr(), 'date') +
+      ig('r_mileage','里程(km)', r.mileage || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>故障描述</label><textarea id="r_issue" placeholder="如：刹车异响">'+escapeHtml(r.issue_description||'')+'</textarea></div>' +
+    ig('r_items','维修项目', r.repair_items || '', '如：更换前刹车片') +
+    '<div class="input-group"><label>更换零件及费用</label><div class="parts-list" id="partsList"></div><button class="add-part-btn" onclick="addPartRow()">+ 添加零件</button></div>' +
+    ig('r_shop','维修店铺', r.shop || '') +
+    '<div class="form-row">' + ig('r_cost','总费用(元)', r.total_cost || '', 'number') + '</div>' +
+    '<div class="input-group"><label>备注</label><textarea id="r_notes">'+escapeHtml(r.notes||'')+'</textarea></div>';
+  return html;
+}
+
+// --- Fuel Form ---
+function fuelForm(id){
+  var r = id ? findRecord('fuel', id) : {};
+  var types = ['92#','95#','98#','0#'];
+  var html = 
+    '<div class="form-row">' +
+      ig('f_date','日期', r.fuel_date || todayStr(), 'date') +
+      ig('f_mileage','里程(km)', r.mileage || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>油品型号</label><select id="f_type">' +
+      types.map(function(t){ return '<option value="'+t+'"'+(r.fuel_type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+    '</select></div>' +
+    '<div class="form-row">' +
+      ig('f_liters','加油量(升)', r.liters || '', 'number') +
+      ig('f_price','单价(元/升)', r.price_per_liter || '', 'number') +
+    '</div>' +
+    '<div class="form-row">' +
+      ig('f_total','总价(元)', r.total_price || '', 'number') +
+    '</div>' +
+    ig('f_station','加油站', r.station || '', '如：中石化XX站');
+  return html;
+}
+
+// --- Insurance Form ---
+function insuranceForm(id){
+  var r = id ? findRecord('insurance', id) : {};
+  var types = ['交强险','商业险','车损险','第三者责任险','车上人员责任险','盗抢险','玻璃险','不计免赔','其他'];
+  var html = 
+    '<div class="input-group"><label>险种</label><select id="i_type">' +
+      types.map(function(t){ return '<option value="'+t+'"'+(r.insurance_type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+    '</select></div>' +
+    ig('i_company','保险公司', r.company || '', '如：平安') +
+    '<div class="form-row">' +
+      ig('i_start','起保日期', r.start_date || todayStr(), 'date') +
+      ig('i_end','到期日期', r.end_date || '', 'date') +
+    '</div>' +
+    '<div class="form-row">' +
+      ig('i_premium','保费(元)', r.premium || '', 'number') +
+      ig('i_policy','保单号', r.policy_number || '') +
+    '</div>' +
+    '<div class="input-group"><label>理赔记录</label><textarea id="i_claim" placeholder="如：2024年X月理赔XX元">'+escapeHtml(r.claim_records||'')+'</textarea></div>';
+  return html;
+}
+
+// --- Violation Form ---
+function violationForm(id){
+  var r = id ? findRecord('violation', id) : {};
+  var types = ['超速','闯红灯','违章停车','压线','逆行','不礼让行人','酒驾','套牌','其他'];
+  var html = 
+    '<div class="form-row">' +
+      ig('v_date','日期', r.violation_date || todayStr(), 'date') +
+    '</div>' +
+    '<div class="input-group"><label>违章类型</label><select id="v_type">' +
+      types.map(function(t){ return '<option value="'+t+'"'+(r.violation_type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+    '</select></div>' +
+    ig('v_location','地点', r.location || '', '如：XX路XX路口') +
+    '<div class="form-row">' +
+      ig('v_fine','罚款(元)', r.fine_amount || '', 'number') +
+      ig('v_points','扣分', r.demerit_points || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>处理状态</label><select id="v_status">' +
+      '<option value="未处理"'+(r.status==='未处理'?' selected':'')+'>未处理</option>' +
+      '<option value="已处理"'+(r.status==='已处理'?' selected':'')+'>已处理</option>' +
+    '</select></div>' +
+    '<div class="input-group"><label>备注</label><textarea id="v_notes">'+escapeHtml(r.notes||'')+'</textarea></div>';
+  return html;
+}
+
+// --- Inspection Form ---
+function inspectionForm(id){
+  var r = id ? findRecord('inspection', id) : {};
+  var html = 
+    '<div class="form-row">' +
+      ig('in_date','检测日期', r.inspection_date || todayStr(), 'date') +
+    '</div>' +
+    '<div class="input-group"><label>检测结果</label><select id="in_result">' +
+      '<option value="通过"'+(r.result==='通过'?' selected':'')+'>通过</option>' +
+      '<option value="不通过"'+(r.result==='不通过'?' selected':'')+'>不通过</option>' +
+    '</select></div>' +
+    '<div class="form-row">' +
+      ig('in_next','下次到期', r.next_due_date || '', 'date') +
+      ig('in_cost','费用(元)', r.cost || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>备注</label><textarea id="in_notes">'+escapeHtml(r.notes||'')+'</textarea></div>';
+  return html;
+}
+
+// ==================== Save Record ====================
+async function saveModalRecord(){
+  if(!editingModule) return;
+  var module = editingModule;
+  var id = editingId;
+  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', violation:'car_violation', inspection:'car_inspection' };
+  var table = tableMap[module];
+  
+  var data = {};
+  try{
+    if(module === 'maintenance'){
+      data.service_date = val('m_date');
+      data.mileage = parseInt(val('m_mileage')) || 0;
+      data.items = getCheckedItems();
+      data.shop = val('m_shop');
+      data.cost = parseFloat(val('m_cost')) || 0;
+      data.notes = val('m_notes');
+    } else if(module === 'repair'){
+      data.repair_date = val('r_date');
+      data.mileage = parseInt(val('r_mileage')) || 0;
+      data.issue_description = val('r_issue');
+      data.repair_items = val('r_items');
+      data.parts = collectParts();
+      data.shop = val('r_shop');
+      data.total_cost = parseFloat(val('r_cost')) || 0;
+      data.notes = val('r_notes');
+    } else if(module === 'fuel'){
+      data.fuel_date = val('f_date');
+      data.mileage = parseInt(val('f_mileage')) || 0;
+      data.fuel_type = val('f_type');
+      data.liters = parseFloat(val('f_liters')) || 0;
+      data.price_per_liter = parseFloat(val('f_price')) || 0;
+      data.total_price = parseFloat(val('f_total')) || 0;
+      data.station = val('f_station');
+    } else if(module === 'insurance'){
+      data.insurance_type = val('i_type');
+      data.company = val('i_company');
+      data.start_date = val('i_start');
+      data.end_date = val('i_end') || null;
+      data.premium = parseFloat(val('i_premium')) || 0;
+      data.policy_number = val('i_policy');
+      data.claim_records = val('i_claim');
+    } else if(module === 'violation'){
+      data.violation_date = val('v_date');
+      data.violation_type = val('v_type');
+      data.location = val('v_location');
+      data.fine_amount = parseFloat(val('v_fine')) || 0;
+      data.demerit_points = parseInt(val('v_points')) || 0;
+      data.status = val('v_status');
+      data.notes = val('v_notes');
+    } else if(module === 'inspection'){
+      data.inspection_date = val('in_date');
+      data.result = val('in_result');
+      data.next_due_date = val('in_next') || null;
+      data.cost = parseFloat(val('in_cost')) || 0;
+      data.notes = val('in_notes');
+    }
+  } catch(e){
+    showToast('数据格式错误', 'error');
+    return;
+  }
+  
+  document.getElementById('modalSaveBtn').disabled = true;
+  try{
+    if(id){
+      var { error } = await supabase.from(table).update(data).eq('id', id);
+    } else {
+      var { error } = await supabase.from(table).insert(data);
+    }
+    if(error) throw error;
+    closeModal();
+    showToast('保存成功');
+    await reloadModule(module);
+    // Re-render affected views
+    renderModule(module);
+    renderDashboard();
+  } catch(e){
+    showToast('保存失败：'+(e.message||''), 'error');
+  } finally {
+    document.getElementById('modalSaveBtn').disabled = false;
+  }
+}
+window.saveModalRecord = saveModalRecord;
+
+// ==================== Delete ====================
+async function deleteRecord(module, id){
+  if(!confirm('确定要删除这条记录吗？')) return;
+  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', violation:'car_violation', inspection:'car_inspection' };
+  var table = tableMap[module];
+  try{
+    var { error } = await supabase.from(table).delete().eq('id', id);
+    if(error) throw error;
+    showToast('删除成功');
+    await reloadModule(module);
+    renderModule(module);
+    renderDashboard();
+  } catch(e){
+    showToast('删除失败：'+(e.message||''), 'error');
+  }
+}
+window.deleteRecord = deleteRecord;
+
+// ==================== Change Password ====================
+function openPwModal(){
+  document.getElementById('pwModalOverlay').classList.add('active');
+  ['pwOld','pwNew','pwConfirm'].forEach(function(id){ document.getElementById(id).value = ''; });
+}
+window.openPwModal = openPwModal;
+
+function closePwModal(){
+  document.getElementById('pwModalOverlay').classList.remove('active');
+}
+window.closePwModal = closePwModal;
+
+async function handleChangePw(){
+  var oldPw = document.getElementById('pwOld').value;
+  var newPw = document.getElementById('pwNew').value;
+  var confPw = document.getElementById('pwConfirm').value;
+  if(!oldPw || !newPw || !confPw){ showToast('请填写完整', 'error'); return; }
+  if(newPw.length < 6){ showToast('新密码至少6位', 'error'); return; }
+  if(newPw !== confPw){ showToast('两次密码不一致', 'error'); return; }
+  try{
+    var { data, error } = await supabase.rpc('change_car_password', { p_old_password: oldPw, p_new_password: newPw });
+    if(error) throw error;
+    if(data === true){
+      closePwModal();
+      showToast('密码修改成功');
+    } else {
+      showToast('原密码错误', 'error');
+    }
+  } catch(e){
+    showToast('修改失败：'+(e.message||''), 'error');
+  }
+}
+window.handleChangePw = handleChangePw;
+
+// ==================== Helpers ====================
+function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function ig(id, label, value, type, placeholder){
+  type = type || 'text';
+  placeholder = placeholder || '';
+  return '<div class="input-group"><label>'+label+'</label><input type="'+type+'" id="'+id+'" value="'+escapeAttr(value)+'" placeholder="'+placeholder+'"></div>';
+}
+function formGroup(id, label, value, placeholder, type){
+  type = type || 'text';
+  placeholder = placeholder || '';
+  return '<div class="input-group"><label>'+label+'</label><input type="'+type+'" id="v_'+id+'" value="'+escapeAttr(value)+'" placeholder="'+placeholder+'"></div>';
+}
+function findRecord(module, id){
+  var list = allData[module] || [];
+  for(var i=0; i<list.length; i++){ if(list[i].id === id) return list[i]; }
+  return {};
+}
+function renderModule(module){
+  if(module === 'maintenance') renderMaintenance();
+  else if(module === 'repair') renderRepair();
+  else if(module === 'fuel') renderFuel();
+  else if(module === 'insurance') renderInsurance();
+  else if(module === 'violation') renderViolation();
+  else if(module === 'inspection') renderInspection();
+}
+function emptyState(icon){ return '<div class="table-wrap"><div class="empty"><div class="icon">'+icon+'</div><p>暂无记录，点击"添加"开始记录</p></div></div>'; }
+function formatDate(d){
+  if(!d) return '-';
+  return d.substring(0,10);
+}
+function formatMoney(n){
+  n = parseFloat(n) || 0;
+  return n > 0 ? n.toFixed(2) + ' 元' : '-';
+}
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function escapeHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escapeAttr(s){
+  if(s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+var toastTimer;
+function showToast(msg, type){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type === 'error' ? 'rgba(220,38,38,.9)' : 'rgba(0,0,0,.8)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2500);
+}
+
+// Checkbox tag toggle
+function toggleCheckbox(el){
+  var input = el.querySelector('input');
+  input.checked = !input.checked;
+  el.classList.toggle('checked', input.checked);
+}
+window.toggleCheckbox = toggleCheckbox;
+function initCheckboxTags(){
+  document.querySelectorAll('#m_items .checkbox-tag').forEach(function(el){
+    el.addEventListener('click', function(e){ e.preventDefault(); toggleCheckbox(el); });
+  });
+}
+function getCheckedItems(){
+  var items = [];
+  document.querySelectorAll('#m_items input:checked').forEach(function(input){ items.push(input.value); });
+  return items;
+}
+
+// Parts list (repair)
+function addPartRow(name, cost){
+  var div = document.createElement('div');
+  div.className = 'part-row';
+  div.innerHTML = '<input type="text" class="part-name" placeholder="零件名称" value="'+escapeAttr(name||'')+'"><input type="number" class="part-cost" placeholder="费用" value="'+escapeAttr(cost||'')+'" step="0.01"><button class="remove-part" onclick="this.parentElement.remove();updateRepairCost()">&times;</button>';
+  document.getElementById('partsList').appendChild(div);
+  div.querySelector('.part-cost').addEventListener('input', updateRepairCost);
+}
+window.addPartRow = addPartRow;
+function initPartsList(){
+  var list = document.getElementById('partsList');
+  if(!list) return;
+  list.innerHTML = '';
+  if(pendingParts && pendingParts.length){
+    pendingParts.forEach(function(p){ addPartRow(p.name, p.cost); });
+  }
+  var totalInput = document.getElementById('r_cost');
+  if(totalInput && (!totalInput.value || parseFloat(totalInput.value) === 0)){
+    updateRepairCost();
+  }
+}
+function collectParts(){
+  var parts = [];
+  document.querySelectorAll('#partsList .part-row').forEach(function(row){
+    var name = row.querySelector('.part-name').value.trim();
+    var cost = parseFloat(row.querySelector('.part-cost').value) || 0;
+    if(name) parts.push({ name:name, cost:cost });
+  });
+  return parts;
+}
+function updateRepairCost(){
+  var total = 0;
+  document.querySelectorAll('#partsList .part-cost').forEach(function(input){
+    total += parseFloat(input.value) || 0;
+  });
+  var totalInput = document.getElementById('r_cost');
+  if(totalInput) totalInput.value = total.toFixed(2);
+}
+
+function initFuelCalc(){
+  var liters = document.getElementById('f_liters');
+  var price = document.getElementById('f_price');
+  var total = document.getElementById('f_total');
+  if(!liters || !price || !total) return;
+  var calc = function(){
+    var l = parseFloat(liters.value) || 0;
+    var p = parseFloat(price.value) || 0;
+    if(l > 0 && p > 0) total.value = (l * p).toFixed(2);
+  };
+  liters.addEventListener('input', calc);
+  price.addEventListener('input', calc);
+}
+
+// ==================== Boot ====================
+function boot(){
+  // Check if Supabase SDK loaded
+  if(!supabase){
+    document.getElementById('loadingOverlay').innerHTML = 
+      '<div style="text-align:center;padding:20px;color:#64748b;max-width:320px">' +
+      '<div style="font-size:40px;margin-bottom:12px">⚠️</div>' +
+      '<p style="font-size:15px;font-weight:600;color:#dc2626;margin-bottom:8px">无法加载依赖库</p>' +
+      '<p style="font-size:13px;line-height:1.6">页面需要联网加载 Supabase SDK，请检查网络连接后刷新页面。</p>' +
+      '<p style="font-size:12px;color:#94a3b8;margin-top:12px">如网络正常仍无法打开，请将 HTML 文件部署到 GitHub Pages 后访问。</p>' +
+      '</div>';
+    return;
+  }
+  if(isLoggedIn()){
+    showApp();
+  } else {
+    showLogin();
+  }
+  // Enter key on login
+  var pwInput = document.getElementById('loginPassword');
+  if(pwInput) pwInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter') handleLogin();
+  });
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
+})();
+</script>
+</body>
+</html>
