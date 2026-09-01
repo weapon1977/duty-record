@@ -767,7 +767,7 @@ function openModal(module, id){
   document.getElementById('modalOverlay').classList.add('active');
   
   // Init checkbox tags
-  if(module === 'maintenance') initCheckboxTags();
+  if(module === 'maintenance') {/* checkbox tags use onclick */}
   if(module === 'repair') initPartsList();
   if(module === 'fuel') initFuelCalc();
 }
