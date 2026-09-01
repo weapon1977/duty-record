@@ -401,7 +401,7 @@ body{
     </div>
     <div class="data-actions">
       <button onclick="exportData()">导出数据</button>
-      <label class="import-btn">导入数据<input type="file" accept=".json" onchange="importData(event)"></label>
+      <label class="import-btn">导入数据<input type="file" accept=".xlsx,.xls,.json" onchange="importData(event)"></label>
       <button class="danger" onclick="clearAllData()">清空数据</button>
     </div>
     <div class="hint" id="hintBox">
@@ -1451,15 +1451,69 @@ body{
   };
   window.importData=async function(ev){
     var f=ev.target.files[0];if(!f)return;
+    var name=(f.name||'').toLowerCase();
+    var isXlsx=name.endsWith('.xlsx')||name.endsWith('.xls');
+    
     var reader=new FileReader();
     reader.onload=async function(e){
       try{
-        var d=JSON.parse(e.target.result);
-        if(!Array.isArray(d.dutyRecords)||!Array.isArray(d.compRecords)||typeof d.initialBalance!=='number'){
-          toast('文件格式不正确');return;
+        var importedData=null;
+        if(isXlsx){
+          // 解析 xlsx
+          var wb=XLSX.read(e.target.result,{type:'array'});
+          importedData={dutyRecords:[],compRecords:[],initialBalance:0};
+          // 读取值班记录 sheet
+          var ws1=wb.Sheets['值班记录'];
+          if(ws1){
+            var rows1=XLSX.utils.sheet_to_json(ws1,{header:1,defval:''});
+            for(var i=1;i<rows1.length;i++){
+              var row=rows1[i];
+              if(!row||!row[0]) continue;
+              importedData.dutyRecords.push({
+                id:Date.now()+Math.floor(Math.random()*10000)+i,
+                date:String(row[0]||''),
+                duty_type:String(row[1]||''),
+                is_used:(row[2]+'').trim()==='已调休'
+              });
+            }
+          }
+          // 读取调休记录 sheet
+          var ws2=wb.Sheets['调休记录'];
+          if(ws2){
+            var rows2=XLSX.utils.sheet_to_json(ws2,{header:1,defval:''});
+            for(var i=1;i<rows2.length;i++){
+              var row=rows2[i];
+              if(!row||!row[0]) continue;
+              importedData.compRecords.push({
+                id:Date.now()+Math.floor(Math.random()*10000)+i,
+                date:String(row[0]||''),
+                note:String(row[1]||'')
+              });
+            }
+          }
+          // 读取汇总 sheet 提取初始余额
+          var ws3=wb.Sheets['汇总'];
+          if(ws3){
+            var rows3=XLSX.utils.sheet_to_json(ws3,{header:1,defval:''});
+            for(var i=0;i<rows3.length;i++){
+              var row=rows3[i];
+              if(row && row[0]==='初始余额'){
+                importedData.initialBalance=parseInt(row[1])||0;
+                break;
+              }
+            }
+          }
+        }else{
+          // JSON 导入（原逻辑）
+          var d=JSON.parse(e.target.result);
+          if(!Array.isArray(d.dutyRecords)||!Array.isArray(d.compRecords)||typeof d.initialBalance!=='number'){
+            toast('文件格式不正确');return;
+          }
+          importedData=d;
         }
+        if(!importedData){toast('无法解析文件');return;}
         if(!confirm('导入将覆盖当前数据，确认继续？'))return;
-        data=d;save();render();toast('导入成功');
+        data=importedData;save();render();toast('导入成功');
         
         // 同步到云端
         if(currentUser){
@@ -1472,7 +1526,7 @@ body{
             // 2. 同步初始天数
             await saveInitialToCloud(data.initialBalance);
             
-            // 3. 批量上传值班记录（每批 50 条）
+            // 3. 批量上传值班记录
             var dutyPayloads=[];
             (data.dutyRecords||[]).forEach(function(r){
               dutyPayloads.push({
@@ -1516,9 +1570,10 @@ body{
             showLoading(false);
           }
         }
-      }catch(err){toast('解析失败')}
+      }catch(err){toast('解析失败: '+(err.message||'未知错误'))}
     };
-    reader.readAsText(f);ev.target.value='';
+    if(isXlsx){reader.readAsArrayBuffer(f);}else{reader.readAsText(f);}
+    ev.target.value='';
   };
   window.clearAllData=async function(){
     if(!confirm('确认清空全部记录？将删除您的所有值班调休记录！'))return;
