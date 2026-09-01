@@ -234,6 +234,7 @@ tbody tr:hover{background:#f8fafc}
     <div class="tab-item" data-tab="violation">⚠️ 违章</div>
     <div class="tab-item" data-tab="inspection">📅 年检</div>
     <div class="tab-item" data-tab="vehicle">🚗 车辆</div>
+    <div class="tab-item" data-tab="export">📤 导出</div>
   </div>
 
   <!-- Tab Contents -->
@@ -251,6 +252,7 @@ tbody tr:hover{background:#f8fafc}
   <div class="tab-content" id="tab-violation"></div>
   <div class="tab-content" id="tab-inspection"></div>
   <div class="tab-content" id="tab-vehicle"></div>
+  <div class="tab-content" id="tab-export"></div>
 </div>
 
 <!-- Modal -->
@@ -389,6 +391,7 @@ function switchTab(tab){
   });
   var el = document.getElementById('tab-' + tab);
   el.scrollTop = 0;
+  if(tab === 'export') renderExport();
 }
 
 // ==================== Init ====================
@@ -407,6 +410,7 @@ async function init(){
   renderViolation();
   renderInspection();
   renderVehicle();
+  renderExport();
 }
 
 // ==================== Data Loading ====================
@@ -591,15 +595,15 @@ function renderRecentList(){
 function renderMaintenance(){
   var el = document.getElementById('tab-maintenance');
   var data = allData.maintenance || [];
-  var html = '<div class="section-title"><h2>🔧 保养记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'maintenance\')">📤 导出</button><button class="add-btn" onclick="openModal(\'maintenance\')">+ 添加</button></div></div>';
+  var html = '<div class="section-title"><h2>🔧 保养记录</h2><button class="add-btn" onclick="openModal(\'maintenance\')">+ 添加</button></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('🔧');
     return;
   }
-  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>保养项目</th><th>店铺</th><th>费用</th><th>操作</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>保养项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   data.forEach(function(r){
     var items = (r.items && r.items.length) ? r.items.map(function(i){return '<span class="tag">'+escapeHtml(i)+'</span>';}).join('') : '-';
-    html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
+    html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td style="font-size:12px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -609,18 +613,18 @@ function renderMaintenance(){
 function renderRepair(){
   var el = document.getElementById('tab-repair');
   var data = allData.repair || [];
-  var html = '<div class="section-title"><h2>🔩 维修记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'repair\')">📤 导出</button><button class="add-btn" onclick="openModal(\'repair\')">+ 添加</button></div></div>';
+  var html = '<div class="section-title"><h2>🔩 维修记录</h2><button class="add-btn" onclick="openModal(\'repair\')">+ 添加</button></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('🔩');
     return;
   }
-  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>故障描述</th><th>维修项目</th><th>店铺</th><th>费用</th><th>操作</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>故障描述</th><th>维修项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   data.forEach(function(r){
     var partsText = '';
     if(r.parts && r.parts.length){
       partsText = r.parts.map(function(p){ return escapeHtml(p.name||'') + '('+formatMoney(p.cost||0)+')'; }).join(' ');
     }
-    html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
+    html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td style="font-size:12px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -630,7 +634,7 @@ function renderRepair(){
 function renderFuel(){
   var el = document.getElementById('tab-fuel');
   var data = allData.fuel || [];
-  var html = '<div class="section-title"><h2>⛽ 加油记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'fuel\')">📤 导出</button><button class="add-btn" onclick="openModal(\'fuel\')">+ 添加</button></div></div>';
+  var html = '<div class="section-title"><h2>⛽ 加油记录</h2><button class="add-btn" onclick="openModal(\'fuel\')">+ 添加</button></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('⛽');
     return;
@@ -647,7 +651,7 @@ function renderFuel(){
 function renderInsurance(){
   var el = document.getElementById('tab-insurance');
   var data = allData.insurance || [];
-  var html = '<div class="section-title"><h2>📋 保险记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'insurance\')">📤 导出</button><button class="add-btn" onclick="openModal(\'insurance\')">+ 添加</button></div></div>';
+  var html = '<div class="section-title"><h2>📋 保险记录</h2><button class="add-btn" onclick="openModal(\'insurance\')">+ 添加</button></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('📋');
     return;
@@ -665,7 +669,7 @@ function renderInsurance(){
 function renderViolation(){
   var el = document.getElementById('tab-violation');
   var data = allData.violation || [];
-  var html = '<div class="section-title"><h2>⚠️ 违章记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'violation\')">📤 导出</button><button class="add-btn" onclick="openModal(\'violation\')">+ 添加</button></div></div>';
+  var html = '<div class="section-title"><h2>⚠️ 违章记录</h2><button class="add-btn" onclick="openModal(\'violation\')">+ 添加</button></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('⚠️');
     return;
@@ -683,7 +687,7 @@ function renderViolation(){
 function renderInspection(){
   var el = document.getElementById('tab-inspection');
   var data = allData.inspection || [];
-  var html = '<div class="section-title"><h2>📅 年检记录</h2><div style="display:flex;gap:8px"><button class="add-btn" style="background:#fff;color:var(--primary);border:1.5px solid var(--primary);padding:8px 12px;font-size:13px" onclick="exportModule(\'inspection\')">📤 导出</button><button class="add-btn" onclick="openModal(\'inspection\')">+ 添加</button></div></div>';
+  var html = '<div class="section-title"><h2>📅 年检记录</h2><div style="display:flex;gap:8px"><button class="add-btn" onclick="openModal(\'inspection\')">+ 添加</button></div></div>';
   if(data.length === 0){
     el.innerHTML = html + emptyState('📅');
     return;
@@ -1177,69 +1181,77 @@ function initFuelCalc(){
   price.addEventListener('input', calc);
 }
 
+// ==================== Export Page ====================
+function renderExport(){
+  var el = document.getElementById('tab-export');
+  if(!el) return;
+  var stats = [
+    { key:'maintenance', name:'保养记录', icon:'🔧', color:'#3b82f6' },
+    { key:'repair', name:'维修记录', icon:'⚙️', color:'#ef4444' },
+    { key:'fuel', name:'加油记录', icon:'⛽', color:'#f59e0b' },
+    { key:'insurance', name:'保险记录', icon:'📋', color:'#8b5cf6' },
+    { key:'violation', name:'违章记录', icon:'🚗', color:'#ec4899' },
+    { key:'inspection', name:'年检记录', icon:'✅', color:'#10b981' }
+  ];
+  var html = '<div style="padding:16px">' +
+    '<div style="margin-bottom:20px;text-align:center">' +
+      '<div style="font-size:48px;margin-bottom:8px">📊</div>' +
+      '<h2 style="font-size:22px;font-weight:700;margin-bottom:6px">一键导出全部记录</h2>' +
+      '<p style="color:#64748b;font-size:14px">导出一个 .xlsx 文件，包含以下所有工作表</p>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px">';
+  stats.forEach(function(s){
+    var count = (allData[s.key]||[]).length;
+    html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">' +
+      '<div style="font-size:28px;margin-bottom:6px">' + s.icon + '</div>' +
+      '<div style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:2px">' + s.name + '</div>' +
+      '<div style="font-size:24px;font-weight:700;color:' + s.color + '">' + count + '</div>' +
+      '<div style="font-size:12px;color:#94a3b8;margin-top:2px">条记录</div>' +
+    '</div>';
+  });
+  html += '</div>' +
+    '<div style="text-align:center;padding:20px 0">' +
+      '<button onclick="exportModule()" style="background:#3b82f6;color:#fff;border:none;border-radius:10px;padding:14px 48px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(59,130,246,0.3);transition:all 0.2s">' +
+        '📥 导出全部记录为 .xlsx</button>' +
+    '</div>' +
+    '<div style="text-align:center;color:#94a3b8;font-size:12px;margin-top:8px">文件名：汽车养护记录_YYYY-MM-DD.xlsx</div>' +
+  '</div>';
+  el.innerHTML = html;
+}
+window.renderExport = renderExport;
+
 // ==================== Export Excel ====================
 function exportModule(module){
-  var data = allData[module] || [];
-  if(data.length === 0){ showToast('没有记录可导出', 'error'); return; }
-  
-  var headers, rows, filename, title;
-  
-  if(module === 'maintenance'){
-    title = '保养记录';
-    filename = '保养记录_' + todayStr();
-    headers = ['日期','里程(km)','保养项目','店铺','费用(元)','备注'];
-    rows = data.map(function(r){
-      return [formatDate(r.service_date), r.mileage||'', (r.items||[]).join('、'), r.shop||'', r.cost||0, r.notes||''];
-    });
-  } else if(module === 'repair'){
-    title = '维修记录';
-    filename = '维修记录_' + todayStr();
-    headers = ['日期','里程(km)','故障描述','维修项目','零件及费用','店铺','总费用(元)','备注'];
-    rows = data.map(function(r){
-      var partsStr = (r.parts||[]).map(function(p){ return (p.name||'') + ':' + (p.cost||0); }).join('; ');
-      return [formatDate(r.repair_date), r.mileage||'', r.issue_description||'', r.repair_items||'', partsStr, r.shop||'', r.total_cost||0, r.notes||''];
-    });
-  } else if(module === 'fuel'){
-    title = '加油记录';
-    filename = '加油记录_' + todayStr();
-    headers = ['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站'];
-    rows = data.map(function(r){
-      return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||''];
-    });
-  } else if(module === 'insurance'){
-    title = '保险记录';
-    filename = '保险记录_' + todayStr();
-    headers = ['险种','保险公司','起保日期','到期日期','保费(元)','保单号','理赔记录'];
-    rows = data.map(function(r){
-      return [r.insurance_type||'', r.company||'', formatDate(r.start_date), r.end_date?formatDate(r.end_date):'长期', r.premium||0, r.policy_number||'', r.claim_records||''];
-    });
-  } else if(module === 'violation'){
-    title = '违章记录';
-    filename = '违章记录_' + todayStr();
-    headers = ['日期','违章类型','地点','罚款(元)','扣分','状态','备注'];
-    rows = data.map(function(r){
-      return [formatDate(r.violation_date), r.violation_type||'', r.location||'', r.fine_amount||0, r.demerit_points||0, r.status||'', r.notes||''];
-    });
-  } else if(module === 'inspection'){
-    title = '年检记录';
-    filename = '年检记录_' + todayStr();
-    headers = ['检测日期','结果','下次到期','费用(元)','备注'];
-    rows = data.map(function(r){
-      return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||''];
-    });
-  }
-  // Build xlsx with SheetJS
-  var aoa = [headers].concat(rows);
-  var ws = XLSX.utils.aoa_to_sheet(aoa);
-  // Set column widths (in characters)
-  var colWidths = headers.map(function(h){
-    return { wch: Math.max(h.length, 12) };
+  var modules = module ? [module] : ['maintenance','repair','fuel','insurance','violation','inspection'];
+  var hasData = false;
+  modules.forEach(function(m){
+    if((allData[m]||[]).length > 0) hasData = true;
   });
-  ws['!cols'] = colWidths;
+  if(!hasData){ showToast('没有记录可导出', 'error'); return; }
+  
   var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, title);
-  XLSX.writeFile(wb, filename + '.xlsx');
-  showToast('✅ 已导出：' + filename + '.xlsx — 请去浏览器「下载」文件夹查找');
+  var sheetConfigs = {
+    maintenance: { title:'保养记录', headers:['日期','里程(km)','保养项目','店铺','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.service_date), r.mileage||'', (r.items||[]).join('、'), r.shop||'', r.cost||0, r.notes||'']; } },
+    repair: { title:'维修记录', headers:['日期','里程(km)','故障描述','维修项目','零件及费用','店铺','总费用(元)','备注'], mapFn:function(r){ var ps=(r.parts||[]).map(function(p){return(p.name||'')+':'+(p.cost||0);}).join('; '); return [formatDate(r.repair_date), r.mileage||'', r.issue_description||'', r.repair_items||'', ps, r.shop||'', r.total_cost||0, r.notes||'']; } },
+    fuel: { title:'加油记录', headers:['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站'], mapFn:function(r){ return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||'']; } },
+    insurance: { title:'保险记录', headers:['险种','保险公司','起保日期','到期日期','保费(元)','保单号','理赔记录'], mapFn:function(r){ return [r.insurance_type||'', r.company||'', formatDate(r.start_date), r.end_date?formatDate(r.end_date):'长期', r.premium||0, r.policy_number||'', r.claim_records||'']; } },
+    violation: { title:'违章记录', headers:['日期','违章类型','地点','罚款(元)','扣分','状态','备注'], mapFn:function(r){ return [formatDate(r.violation_date), r.violation_type||'', r.location||'', r.fine_amount||0, r.demerit_points||0, r.status||'', r.notes||'']; } },
+    inspection: { title:'年检记录', headers:['检测日期','结果','下次到期','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||'']; } }
+  };
+  
+  modules.forEach(function(m){
+    var cfg = sheetConfigs[m];
+    var data = allData[m] || [];
+    if(data.length === 0) return;
+    var aoa = [cfg.headers].concat(data.map(cfg.mapFn));
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var colWidths = cfg.headers.map(function(h){ return {wch: Math.max(h.length, 12)}; });
+    ws['!cols'] = colWidths;
+    XLSX.utils.book_append_sheet(wb, ws, cfg.title);
+  });
+  
+  XLSX.writeFile(wb, '汽车养护记录_' + todayStr() + '.xlsx');
+  showToast('✅ 已导出：汽车养护记录_' + todayStr() + '.xlsx');
 }
 window.exportModule = exportModule;
 
