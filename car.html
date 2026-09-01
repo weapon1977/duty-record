@@ -603,7 +603,7 @@ function renderMaintenance(){
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>保养项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   data.forEach(function(r){
     var items = (r.items && r.items.length) ? r.items.map(function(i){return '<span class="tag">'+escapeHtml(i)+'</span>';}).join('') : '-';
-    html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td style="font-size:12px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
+    html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:180px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -624,7 +624,7 @@ function renderRepair(){
     if(r.parts && r.parts.length){
       partsText = r.parts.map(function(p){ return escapeHtml(p.name||'') + '('+formatMoney(p.cost||0)+')'; }).join(' ');
     }
-    html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td style="font-size:12px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
+    html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:180px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
