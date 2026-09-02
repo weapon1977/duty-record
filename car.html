@@ -455,7 +455,7 @@ function renderDashboard(){
   ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
-      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || 0);
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || 0);
       totalCost += cost;
       var d = (r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,7);
       if(d === ym) monthCost += cost;
@@ -498,7 +498,7 @@ function renderMonthlyChart(){
       var dateField = r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '';
       var ym = dateField.substring(0,7);
       if(!months[ym]) return;
-      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || 0);
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || 0);
       if(mod === 'maintenance') months[ym].maintenance += cost;
       else if(mod === 'repair') months[ym].repair += cost;
       else if(mod === 'fuel') months[ym].fuel += cost;
@@ -565,7 +565,7 @@ function renderRecentList(){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
       var date = r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '';
-      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || 0);
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || 0);
       var icon = { maintenance:'🔧', repair:'🔩', fuel:'⛽', insurance:'📋', violation:'⚠️', inspection:'📅' }[mod];
       var title = '';
       if(mod === 'maintenance') title = (r.items && r.items.length ? r.items.join('、') : '保养');
