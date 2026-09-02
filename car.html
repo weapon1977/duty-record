@@ -232,6 +232,7 @@ tbody tr:hover{background:#f8fafc}
     <div class="tab-item" data-tab="fuel">⛽ 加油</div>
     <div class="tab-item" data-tab="insurance">📋 保险</div>
     <div class="tab-item" data-tab="violation">⚠️ 违章</div>
+    <div class="tab-item" data-tab="toll">🛣️ 高速费</div>
     <div class="tab-item" data-tab="inspection">📅 年检</div>
     <div class="tab-item" data-tab="vehicle">🚗 车辆</div>
     <div class="tab-item" data-tab="export">📤 导出</div>
@@ -250,6 +251,7 @@ tbody tr:hover{background:#f8fafc}
   <div class="tab-content" id="tab-fuel"></div>
   <div class="tab-content" id="tab-insurance"></div>
   <div class="tab-content" id="tab-violation"></div>
+  <div class="tab-content" id="tab-toll"></div>
   <div class="tab-content" id="tab-inspection"></div>
   <div class="tab-content" id="tab-vehicle"></div>
   <div class="tab-content" id="tab-export"></div>
@@ -391,6 +393,7 @@ function switchTab(tab){
   });
   var el = document.getElementById('tab-' + tab);
   el.scrollTop = 0;
+  if(tab === 'toll') renderToll();
   if(tab === 'export') renderExport();
 }
 
@@ -408,6 +411,7 @@ async function init(){
   renderFuel();
   renderInsurance();
   renderViolation();
+  renderToll();
   renderInspection();
   renderVehicle();
   renderExport();
@@ -415,7 +419,7 @@ async function init(){
 
 // ==================== Data Loading ====================
 async function loadAllData(){
-  var tables = ['car_vehicle','car_maintenance','car_repair','car_fuel','car_insurance','car_violation','car_inspection'];
+  var tables = ['car_vehicle','car_maintenance','car_repair','car_fuel','car_insurance','car_toll','car_violation','car_inspection'];
   for(var i=0; i<tables.length; i++){
     var t = tables[i];
     var key = t.replace('car_','');
@@ -435,7 +439,7 @@ async function loadVehicleBadge(){
 }
 
 async function reloadModule(module){
-  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', violation:'car_violation', inspection:'car_inspection' };
+  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', toll:'car_toll', violation:'car_violation', inspection:'car_inspection' };
   var table = tableMap[module];
   if(!table) return;
   var { data } = await supabase.from(table).select('*').order('id',{ascending:false});
@@ -452,14 +456,14 @@ function renderDashboard(){
   var fuelCount = 0;
   
   // Calculate costs
-  ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
+  ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
-      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || 0);
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || r.amount || 0);
       totalCost += cost;
-      var d = (r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,7);
+      var d = (r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,7);
       if(d === ym) monthCost += cost;
-      var y = (r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,4);
+      var y = (r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,4);
       if(parseInt(y) === yy) yearCost += cost;
     });
     if(mod === 'fuel') fuelCount = (allData[mod]||[]).length;
@@ -489,19 +493,20 @@ function renderMonthlyChart(){
   var now = new Date();
   for(var i=5; i>=0; i--){
     var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { maintenance:0, repair:0, fuel:0, other:0 };
+    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { maintenance:0, repair:0, fuel:0, toll:0, other:0 };
   }
   
-  ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
+  ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
-      var dateField = r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '';
+      var dateField = r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '';
       var ym = dateField.substring(0,7);
       if(!months[ym]) return;
-      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || 0);
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || r.amount || 0);
       if(mod === 'maintenance') months[ym].maintenance += cost;
       else if(mod === 'repair') months[ym].repair += cost;
       else if(mod === 'fuel') months[ym].fuel += cost;
+      else if(mod === 'toll') months[ym].toll += cost;
       else months[ym].other += cost;
     });
   });
@@ -517,6 +522,7 @@ function renderMonthlyChart(){
         { label:'保养', data:labels.map(function(m){return months[m].maintenance;}), backgroundColor:'#0ea5e9' },
         { label:'维修', data:labels.map(function(m){return months[m].repair;}), backgroundColor:'#f59e0b' },
         { label:'加油', data:labels.map(function(m){return months[m].fuel;}), backgroundColor:'#16a34a' },
+        { label:'高速费', data:labels.map(function(m){return months[m].toll;}), backgroundColor:'#f59e0b' },
         { label:'其他', data:labels.map(function(m){return months[m].other;}), backgroundColor:'#94a3b8' }
       ]
     },
@@ -561,16 +567,17 @@ function renderFuelChart(){
 
 function renderRecentList(){
   var items = [];
-  ['maintenance','repair','fuel','insurance','violation','inspection'].forEach(function(mod){
+  ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
-      var date = r.service_date || r.repair_date || r.fuel_date || r.start_date || r.violation_date || r.inspection_date || '';
-      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || 0);
-      var icon = { maintenance:'🔧', repair:'🔩', fuel:'⛽', insurance:'📋', violation:'⚠️', inspection:'📅' }[mod];
+      var date = r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '';
+      var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || r.amount || 0);
+      var icon = { maintenance:'🔧', repair:'🔩', fuel:'⛽', insurance:'📋', toll:'🛣️', violation:'⚠️', inspection:'📅' }[mod];
       var title = '';
       if(mod === 'maintenance') title = (r.items && r.items.length ? r.items.join('、') : '保养');
       else if(mod === 'repair') title = r.issue_description || '维修';
       else if(mod === 'fuel') title = r.fuel_type + ' ' + (r.liters||0) + 'L';
+      else if(mod === 'toll') title = (r.entrance||'') + ' → ' + (r.exit||'');
       else if(mod === 'insurance') title = r.insurance_type || '保险';
       else if(mod === 'violation') title = r.violation_type || '违章';
       else if(mod === 'inspection') title = '年检' + (r.result === '通过' ? '通过' : '未通过');
@@ -683,6 +690,23 @@ function renderViolation(){
   el.innerHTML = html;
 }
 
+// ==================== Toll ====================
+function renderToll(){
+  var el = document.getElementById('tab-toll');
+  var data = allData.toll || [];
+  var html = '<div class="section-title"><h2>🛣️ 高速费记录</h2><button class="add-btn" onclick="openModal(\'toll\')">+ 添加</button></div>';
+  if(data.length === 0){
+    el.innerHTML = html + emptyState('🛣️');
+    return;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>入口</th><th>出口</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+  data.forEach(function(r){
+    html += '<tr><td>'+formatDate(r.toll_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.entrance||'-')+'</td><td>'+escapeHtml(r.exit||'-')+'</td><td class="cost">'+formatMoney(r.amount)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'toll\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'toll\','+r.id+')">🗑️</button></div></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
 // ==================== Inspection ====================
 function renderInspection(){
   var el = document.getElementById('tab-inspection');
@@ -767,6 +791,7 @@ function openModal(module, id){
   else if(module === 'fuel') body.innerHTML = fuelForm(id);
   else if(module === 'insurance') body.innerHTML = insuranceForm(id);
   else if(module === 'violation') body.innerHTML = violationForm(id);
+  else if(module === 'toll') body.innerHTML = tollForm(id);
   else if(module === 'inspection') body.innerHTML = inspectionForm(id);
   
   document.getElementById('modalOverlay').classList.add('active');
@@ -786,7 +811,7 @@ function closeModal(){
 window.closeModal = closeModal;
 
 function moduleTitle(mod){
-  return { maintenance:'保养记录', repair:'维修记录', fuel:'加油记录', insurance:'保险记录', violation:'违章记录', inspection:'年检记录' }[mod] || '记录';
+  return { maintenance:'保养记录', repair:'维修记录', fuel:'加油记录', insurance:'保险记录', toll:'高速费记录', violation:'违章记录', inspection:'年检记录' }[mod] || '记录';
 }
 
 // --- Maintenance Form ---
@@ -899,6 +924,25 @@ function violationForm(id){
   return html;
 }
 
+// --- Toll Form ---
+function tollForm(id){
+  var r = id ? findRecord('toll', id) : {};
+  var html = 
+    '<div class="form-row">' +
+      ig('to_date','日期', r.toll_date || todayStr(), 'date') +
+      ig('to_mileage','里程(km)', r.mileage || '', 'number') +
+    '</div>' +
+    '<div class="form-row">' +
+      ig('to_entrance','入口', r.entrance || '', '如：北京西') +
+      ig('to_exit','出口', r.exit || '', '如：上海南') +
+    '</div>' +
+    '<div class="form-row">' +
+      ig('to_amount','费用(元)', r.amount || '', 'number') +
+    '</div>' +
+    '<div class="input-group"><label>备注</label><textarea id="to_notes">'+escapeHtml(r.notes||'')+'</textarea></div>';
+  return html;
+}
+
 // --- Inspection Form ---
 function inspectionForm(id){
   var r = id ? findRecord('inspection', id) : {};
@@ -923,7 +967,7 @@ async function saveModalRecord(){
   if(!editingModule) return;
   var module = editingModule;
   var id = editingId;
-  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', violation:'car_violation', inspection:'car_inspection' };
+  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', toll:'car_toll', violation:'car_violation', inspection:'car_inspection' };
   var table = tableMap[module];
   
   var data = {};
@@ -960,6 +1004,13 @@ async function saveModalRecord(){
       data.premium = parseFloat(val('i_premium')) || 0;
       data.policy_number = val('i_policy');
       data.claim_records = val('i_claim');
+    } else if(module === 'toll'){
+      data.toll_date = val('to_date');
+      data.mileage = parseInt(val('to_mileage')) || 0;
+      data.entrance = val('to_entrance');
+      data.exit = val('to_exit');
+      data.amount = parseFloat(val('to_amount')) || 0;
+      data.notes = val('to_notes');
     } else if(module === 'violation'){
       data.violation_date = val('v_date');
       data.violation_type = val('v_type');
@@ -1005,7 +1056,7 @@ window.saveModalRecord = saveModalRecord;
 // ==================== Delete ====================
 async function deleteRecord(module, id){
   if(!confirm('确定要删除这条记录吗？')) return;
-  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', violation:'car_violation', inspection:'car_inspection' };
+  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', toll:'car_toll', violation:'car_violation', inspection:'car_inspection' };
   var table = tableMap[module];
   try{
     var { error } = await supabase.from(table).delete().eq('id', id);
@@ -1075,6 +1126,7 @@ function renderModule(module){
   if(module === 'maintenance') renderMaintenance();
   else if(module === 'repair') renderRepair();
   else if(module === 'fuel') renderFuel();
+  else if(module === 'toll') renderToll();
   else if(module === 'insurance') renderInsurance();
   else if(module === 'violation') renderViolation();
   else if(module === 'inspection') renderInspection();
@@ -1191,6 +1243,7 @@ function renderExport(){
     { key:'fuel', name:'加油记录', icon:'⛽', color:'#f59e0b' },
     { key:'insurance', name:'保险记录', icon:'📋', color:'#8b5cf6' },
     { key:'violation', name:'违章记录', icon:'🚗', color:'#ec4899' },
+    { key:'toll', name:'高速费记录', icon:'🛣️', color:'#f59e0b' },
     { key:'inspection', name:'年检记录', icon:'✅', color:'#10b981' }
   ];
   var html = '<div style="padding:16px">' +
@@ -1222,7 +1275,7 @@ window.renderExport = renderExport;
 
 // ==================== Export Excel ====================
 function exportModule(module){
-  var modules = module ? [module] : ['maintenance','repair','fuel','insurance','violation','inspection'];
+  var modules = module ? [module] : ['maintenance','repair','fuel','insurance','toll','violation','inspection'];
   var hasData = false;
   modules.forEach(function(m){
     if((allData[m]||[]).length > 0) hasData = true;
@@ -1236,7 +1289,8 @@ function exportModule(module){
     fuel: { title:'加油记录', headers:['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站'], mapFn:function(r){ return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||'']; } },
     insurance: { title:'保险记录', headers:['险种','保险公司','起保日期','到期日期','保费(元)','保单号','理赔记录'], mapFn:function(r){ return [r.insurance_type||'', r.company||'', formatDate(r.start_date), r.end_date?formatDate(r.end_date):'长期', r.premium||0, r.policy_number||'', r.claim_records||'']; } },
     violation: { title:'违章记录', headers:['日期','违章类型','地点','罚款(元)','扣分','状态','备注'], mapFn:function(r){ return [formatDate(r.violation_date), r.violation_type||'', r.location||'', r.fine_amount||0, r.demerit_points||0, r.status||'', r.notes||'']; } },
-    inspection: { title:'年检记录', headers:['检测日期','结果','下次到期','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||'']; } }
+    inspection: { title:'年检记录', headers:['检测日期','结果','下次到期','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||'']; } },
+    toll: { title:'高速费记录', headers:['日期','里程(km)','入口','出口','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.toll_date), r.mileage||'', r.entrance||'', r.exit||'', r.amount||0, r.notes||'']; } }
   };
   
   modules.forEach(function(m){
