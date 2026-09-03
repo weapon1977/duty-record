@@ -71,6 +71,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Micr
 .tab-item{flex:0 0 auto;padding:12px 16px;font-size:14px;font-weight:500;color:var(--text-2nd);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
 .tab-item.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
 .tab-item:active{opacity:.7}
+.tab-more{position:relative}
+.tab-dropdown{display:none;position:absolute;top:100%;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:50;min-width:140px;padding:4px 0}
+.tab-dropdown.active{display:block}
+.tab-dropdown .tab-item{padding:10px 16px;font-size:13px;border-bottom:none;display:block;white-space:nowrap}
+.tab-dropdown .tab-item:hover{background:var(--primary-light)}
+.tab-dropdown .tab-item.active{color:var(--primary);font-weight:600}
 
 /* Content */
 .tab-content{display:none;padding:16px;max-width:900px;margin:0 auto}
@@ -230,7 +236,6 @@ tbody tr:hover{background:#f8fafc}
     <div class="title">
       <span>🏠</span>
       <span>家庭记账管家</span>
-      <span class="vehicle-badge" id="vehicleBadge"></span>
     </div>
     <div class="header-actions">
       <button class="icon-btn" onclick="openPwModal()" title="修改密码">🔑</button>
@@ -244,10 +249,7 @@ tbody tr:hover{background:#f8fafc}
     <div class="tab-item" data-tab="maintenance">🔧 保养</div>
     <div class="tab-item" data-tab="repair">🔩 维修</div>
     <div class="tab-item" data-tab="fuel">⛽ 加油</div>
-    <div class="tab-item" data-tab="insurance">📋 保险</div>
-    <div class="tab-item" data-tab="violation">⚠️ 违章</div>
     <div class="tab-item" data-tab="toll">🛣️ 高速</div>
-    <div class="tab-item" data-tab="inspection">📅 年检</div>
     <div class="tab-item" style="opacity:.3;cursor:default;padding:0 2px">|</div>
     <div class="tab-item" data-tab="dining">🍽️ 餐饮</div>
     <div class="tab-item" data-tab="shopping">🛍️ 购物</div>
@@ -255,10 +257,16 @@ tbody tr:hover{background:#f8fafc}
     <div class="tab-item" data-tab="electricity">⚡ 电费</div>
     <div class="tab-item" data-tab="water">💧 水费</div>
     <div class="tab-item" data-tab="heating">🔥 取暖</div>
-    <div class="tab-item" data-tab="property">🏠 物业</div>
-    <div class="tab-item" data-tab="social">🎁 人情</div>
     <div class="tab-item" data-tab="vehicle">🚗 车辆</div>
     <div class="tab-item" data-tab="export">📤 导出</div>
+    <div class="tab-item tab-more" id="tabMore">⋮ 更多</div>
+    <div class="tab-dropdown" id="tabDropdown">
+      <div class="tab-item" data-tab="insurance">📋 保险</div>
+      <div class="tab-item" data-tab="violation">⚠️ 违章</div>
+      <div class="tab-item" data-tab="inspection">📅 年检</div>
+      <div class="tab-item" data-tab="property">🏠 物业</div>
+      <div class="tab-item" data-tab="social">🎁 人情</div>
+    </div>
   </div>
 
   <!-- Tab Contents -->
@@ -347,6 +355,9 @@ const SESSION_KEY = 'car_maintenance_session';
 var supabase = null;
 var allData = {};
 var currentTab = 'dashboard';
+var editingModule = null;
+var editingId = null;
+var submitting = false;
 try {
   if (window.supabase && window.supabase.createClient) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -525,14 +536,18 @@ function showApp(){
 // ==================== Tab Switching ====================
 function switchTab(tab){
   currentTab = tab;
-  document.querySelectorAll('.tab-item').forEach(function(el){
+  // Close more dropdown if open
+  var dd = document.getElementById('tabDropdown');
+  if(dd) dd.classList.remove('active');
+  // Update active state on all tab items (including dropdown)
+  document.querySelectorAll('.tab-item[data-tab]').forEach(function(el){
     el.classList.toggle('active', el.dataset.tab === tab);
   });
   document.querySelectorAll('.tab-content').forEach(function(el){
     el.classList.toggle('active', el.id === 'tab-' + tab);
   });
   var el = document.getElementById('tab-' + tab);
-  el.scrollTop = 0;
+  if(el) el.scrollTop = 0;
   if(tab === 'toll') renderToll();
   if(tab === 'export') renderExport();
   if(FAMILY_CATEGORIES[tab]) renderFamilyModule(tab);
@@ -540,10 +555,26 @@ function switchTab(tab){
 
 // ==================== Init ====================
 async function init(){
-  // Tab events
-  document.querySelectorAll('.tab-item').forEach(function(el){
+  // Tab events - top nav items
+  document.querySelectorAll('.tab-item[data-tab]').forEach(function(el){
     el.addEventListener('click', function(){ switchTab(el.dataset.tab); });
   });
+  // More dropdown toggle
+  var tabMore = document.getElementById('tabMore');
+  var tabDropdown = document.getElementById('tabDropdown');
+  if(tabMore && tabDropdown){
+    tabMore.addEventListener('click', function(e){
+      e.stopPropagation();
+      tabDropdown.classList.toggle('active');
+    });
+    // Click outside to close dropdown
+    document.addEventListener('click', function(){
+      tabDropdown.classList.remove('active');
+    });
+    tabDropdown.addEventListener('click', function(e){
+      e.stopPropagation();
+    });
+  }
   await loadVehicleBadge();
   await loadAllData();
   renderDashboard();
@@ -1538,7 +1569,8 @@ async function saveModalRecord(){
         await supabase.from(table).update(data).eq('id', id).eq('category', module);
       }
     } else {
-      var { error } = await supabase.from(table).insert(data);
+      var result = await supabase.from(table).insert(data);
+      var error = result.error;
     }
     if(error) throw error;
     closeModal();
