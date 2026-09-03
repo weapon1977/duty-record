@@ -656,7 +656,7 @@ function renderDashboard(){
       if(d === ym) monthCost += cost;
       var y = (r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,4);
       if(parseInt(y) === yy) yearCost += cost;
-      if(mod === 'fuel') fuelCount++;
+      if(mod === 'fuel' && r.record_type !== 'recharge') fuelCount++;
     });
   });
 
@@ -712,6 +712,7 @@ function renderMonthlyChart(){
       var dateField = r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '';
       var ym = dateField.substring(0,7);
       if(!months[ym]) return;
+      if(mod === 'fuel' && r.record_type === 'recharge') return; // skip fuel recharge
       var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || r.amount || 0);
       if(mod === 'maintenance') months[ym].maintenance += cost;
       else if(mod === 'repair') months[ym].repair += cost;
@@ -793,6 +794,7 @@ function renderRecentList(){
   ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
+      if(mod === 'fuel' && r.record_type === 'recharge') return; // skip fuel recharge in recent list
       var date = r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '';
       var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || r.amount || 0);
       var icon = { maintenance:'🔧', repair:'🔩', fuel:'⛽', insurance:'📋', toll:'🛣️', violation:'⚠️', inspection:'📅' }[mod];
@@ -906,8 +908,13 @@ function renderFuel(){
   html += buildDateFilterBar('fuel');
   var filtered = getFilteredByDate('fuel', 'fuel_date');
   var totalCount = filtered.length;
-  var totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r.total_price)||0); }, 0);
-  html += buildSummaryCards(totalCount, totalCost);
+  var totalExpense = filtered.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r.total_price)||0):0); }, 0);
+  var totalRecharge = filtered.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
+  html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">查询结果</div><div style="font-size:20px;font-weight:700;color:var(--primary)">'+totalCount+' <span style="font-size:12px;color:var(--text-2nd)">条</span></div></div>'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">加油消费</div><div style="font-size:20px;font-weight:700;color:var(--danger)">'+formatMoney(totalExpense)+'</div></div>'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">充值</div><div style="font-size:20px;font-weight:700;color:var(--success)">'+formatMoney(totalRecharge)+'</div></div>'+
+  '</div>';
   if(filtered.length === 0){
     el.innerHTML = html + emptyState('⛽');
     return;
@@ -918,9 +925,12 @@ function renderFuel(){
   var start = (st.page - 1) * st.size;
   var pageData = filtered.slice(start, start + st.size);
   
-  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>油品</th><th>油量</th><th>单价</th><th>总价</th><th>加油站</th><th>备注</th><th>操作</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>里程</th><th>油品</th><th>油量</th><th>单价</th><th>金额</th><th>支付方式</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
-    html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.fuel_type||'-')+'</td><td>'+(r.liters?r.liters+' L':'-')+'</td><td>'+(r.price_per_liter?r.price_per_liter+' 元':'-')+'</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+escapeHtml(r.station||'-')+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
+    var typeBadge = r.record_type==='recharge' ? '<span class="badge badge-success">充值</span>' : '<span class="badge badge-danger">加油</span>';
+    var pmMap = { fuel_card:'加油卡', credit_card:'信用卡', debit_card:'储蓄卡', wechat:'微信支付', alipay:'支付宝', cash:'现金' };
+    var payment = pmMap[r.payment_method] || r.payment_method || '-';
+    html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+typeBadge+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.fuel_type||'-')+'</td><td>'+(r.liters?r.liters+' L':'-')+'</td><td>'+(r.price_per_liter?r.price_per_liter+' 元':'-')+'</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+payment+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
   html += renderPageNav('fuel', st.page, totalPages, totalCount);
@@ -1321,17 +1331,37 @@ function repairForm(id){
 function fuelForm(id){
   var r = id ? findRecord('fuel', id) : {};
   var types = ['92#','95#','98#','0#'];
+  var recordTypes = [
+    {value:'expense', label:'实际加油'},
+    {value:'recharge', label:'加油卡充值'}
+  ];
+  var payments = [
+    {value:'fuel_card', label:'加油卡'},
+    {value:'credit_card', label:'信用卡'},
+    {value:'debit_card', label:'储蓄卡'},
+    {value:'wechat', label:'微信支付'},
+    {value:'alipay', label:'支付宝'},
+    {value:'cash', label:'现金'}
+  ];
   var html = 
     '<div class="form-row">' +
       ig('f_date','日期', r.fuel_date || todayStr(), 'date') +
       ig('f_mileage','里程(km)', r.mileage || '', 'number') +
     '</div>' +
-    '<div class="input-group"><label>油品型号</label><select id="f_type">' +
-      types.map(function(t){ return '<option value="'+t.value+'"'+(r.fuel_type===t.value?' selected':'')+'>'+t.label+'</option>'; }).join('') +
+    '<div class="input-group"><label>记录类型</label><select id="f_record_type" onchange="onFuelTypeChange()">' +
+      recordTypes.map(function(t){ return '<option value="'+t.value+'"'+(r.record_type===t.value?' selected':'')+'>'+t.label+'</option>'; }).join('') +
     '</select></div>' +
-    '<div class="form-row">' +
-      ig('f_liters','加油量(升)', r.liters || '', 'number') +
-      ig('f_price','单价(元/升)', r.price_per_liter || '', 'number') +
+    '<div id="fuelExpenseFields"' + (r.record_type==='recharge'?' style="display:none"':'') + '>' +
+      '<div class="input-group"><label>支付方式</label><select id="f_payment">' +
+        payments.map(function(p){ return '<option value="'+p.value+'"'+(r.payment_method===p.value?' selected':'')+'>'+p.label+'</option>'; }).join('') +
+      '</select></div>' +
+      '<div class="input-group"><label>油品型号</label><select id="f_type">' +
+        types.map(function(t){ return '<option value="'+t+'"'+(r.fuel_type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+      '</select></div>' +
+      '<div class="form-row">' +
+        ig('f_liters','加油量(升)', r.liters || '', 'number') +
+        ig('f_price','单价(元/升)', r.price_per_liter || '', 'number') +
+      '</div>' +
     '</div>' +
     '<div class="form-row">' +
       ig('f_total','金额(元)', r.total_price || '', 'number') +
@@ -1340,6 +1370,13 @@ function fuelForm(id){
     ig('f_notes','备注', r.notes || '', '可选');
   return html;
 }
+
+function onFuelTypeChange(){
+  var type = document.getElementById('f_record_type').value;
+  var fields = document.getElementById('fuelExpenseFields');
+  if(fields) fields.style.display = type === 'recharge' ? 'none' : 'block';
+}
+window.onFuelTypeChange = onFuelTypeChange;
 
 // --- Insurance Form ---
 function insuranceForm(id){
@@ -1514,6 +1551,8 @@ async function saveModalRecord(){
       data.price_per_liter = parseFloat(val('f_price')) || 0;
       data.total_price = parseFloat(val('f_total')) || 0;
       data.station = val('f_station');
+      data.record_type = val('f_record_type') || 'expense';
+      data.payment_method = val('f_payment') || 'fuel_card';
       data.notes = val('f_notes') || '';
     } else if(module === 'insurance'){
       data.insurance_type = val('i_type');
@@ -1793,6 +1832,9 @@ function initFuelCalc(){
   };
   liters.addEventListener('input', calc);
   price.addEventListener('input', calc);
+  // Also handle record_type change for fuel form
+  var rt = document.getElementById('f_record_type');
+  if(rt) rt.addEventListener('change', onFuelTypeChange);
 }
 
 // ==================== Export Page ====================
@@ -1856,7 +1898,7 @@ function exportModule(module){
   var sheetConfigs = {
     maintenance: { title:'保养记录', headers:['日期','里程(km)','保养项目','店铺','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.service_date), r.mileage||'', (r.items||[]).join('、'), r.shop||'', r.cost||0, r.notes||'']; } },
     repair: { title:'维修记录', headers:['日期','里程(km)','故障描述','维修项目','零件及费用','店铺','总费用(元)','备注'], mapFn:function(r){ var ps=(r.parts||[]).map(function(p){return(p.name||'')+':'+(p.cost||0);}).join('; '); return [formatDate(r.repair_date), r.mileage||'', r.issue_description||'', r.repair_items||'', ps, r.shop||'', r.total_cost||0, r.notes||'']; } },
-    fuel: { title:'加油记录', headers:['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站','备注'], mapFn:function(r){ return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||'', r.notes||'']; } },
+    fuel: { title:'加油记录', headers:['类型','日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','支付方式','加油站','备注'], mapFn:function(r){ var pmMap={fuel_card:'加油卡',credit_card:'信用卡',debit_card:'储蓄卡',wechat:'微信支付',alipay:'支付宝',cash:'现金'}; return [r.record_type==='recharge'?'充值':'加油', formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, pmMap[r.payment_method]||r.payment_method||'-', r.station||'', r.notes||'']; } },
     insurance: { title:'保险记录', headers:['险种','保险公司','起保日期','到期日期','保费(元)','保单号','理赔记录'], mapFn:function(r){ return [r.insurance_type||'', r.company||'', formatDate(r.start_date), r.end_date?formatDate(r.end_date):'长期', r.premium||0, r.policy_number||'', r.claim_records||'']; } },
     violation: { title:'违章记录', headers:['日期','违章类型','地点','罚款(元)','扣分','状态','备注'], mapFn:function(r){ return [formatDate(r.violation_date), r.violation_type||'', r.location||'', r.fine_amount||0, r.demerit_points||0, r.status||'', r.notes||'']; } },
     inspection: { title:'年检记录', headers:['检测日期','结果','下次到期','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||'']; } },
