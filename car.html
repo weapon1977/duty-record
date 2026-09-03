@@ -98,6 +98,20 @@ tbody tr:hover{background:#f8fafc}
 .action-edit{background:var(--primary-light);color:var(--primary-dark)}
 .action-edit:hover{background:#bae6fd}
 .action-del{background:var(--danger-bg);color:var(--danger)}
+
+/* Pagination */
+.pagination{display:flex;justify-content:center;align-items:center;gap:4px;margin-top:14px;flex-wrap:wrap}
+.pagination button{background:#fff;border:1.5px solid var(--border);color:var(--text-2nd);padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.pagination button:hover{background:var(--primary-light);border-color:var(--primary)}
+.pagination button.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.pagination .page-info{font-size:13px;color:var(--text-2nd);padding:6px 8px}
+
+/* Filter */
+.filter-bar{background:#fff;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.filter-bar .input-group{margin-bottom:0;flex:1;min-width:140px}
+.filter-bar .input-group input{padding:8px 10px;font-size:14px}
+.filter-bar .btn{padding:9px 16px;font-size:13px}
 .action-del:hover{background:#fecaca}
 .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
 .badge-success{background:var(--success-bg);color:var(--success)}
@@ -326,6 +340,18 @@ var currentTab = 'dashboard';
 var editingModule = null;
 var editingId = null;
 var allData = {};
+// Pagination state
+var pageState = {
+  maintenance: { page: 1, size: 15 },
+  repair: { page: 1, size: 15 },
+  fuel: { page: 1, size: 15 },
+  insurance: { page: 1, size: 15 },
+  toll: { page: 1, size: 15 },
+  violation: { page: 1, size: 15 },
+  inspection: { page: 1, size: 15 }
+};
+// Toll filter state (combined query: all conditions must match)
+var tollFilter = { startDate: '', endDate: '', entrance: '', exit: '', keyword: '' };
 var monthlyChart = null;
 var fuelChart = null;
 var pendingParts = [];
@@ -444,6 +470,7 @@ async function reloadModule(module){
   if(!table) return;
   var { data } = await supabase.from(table).select('*').order('id',{ascending:false});
   allData[module] = data || [];
+  pageState[module].page = 1;
 }
 
 // ==================== Dashboard ====================
@@ -607,12 +634,20 @@ function renderMaintenance(){
     el.innerHTML = html + emptyState('🔧');
     return;
   }
+  var st = pageState.maintenance;
+  var total = data.length;
+  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = data.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>保养项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     var items = (r.items && r.items.length) ? r.items.map(function(i){return '<span class="tag">'+escapeHtml(i)+'</span>';}).join('') : '-';
     html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:180px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('maintenance', st.page, totalPages, total);
   el.innerHTML = html;
 }
 
@@ -625,8 +660,15 @@ function renderRepair(){
     el.innerHTML = html + emptyState('🔩');
     return;
   }
+  var st = pageState.repair;
+  var total = data.length;
+  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = data.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>故障描述</th><th>维修项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     var partsText = '';
     if(r.parts && r.parts.length){
       partsText = r.parts.map(function(p){ return escapeHtml(p.name||'') + '('+formatMoney(p.cost||0)+')'; }).join(' ');
@@ -634,6 +676,7 @@ function renderRepair(){
     html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:180px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('repair', st.page, totalPages, total);
   el.innerHTML = html;
 }
 
@@ -646,11 +689,19 @@ function renderFuel(){
     el.innerHTML = html + emptyState('⛽');
     return;
   }
+  var st = pageState.fuel;
+  var total = data.length;
+  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = data.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>油品</th><th>升数</th><th>单价</th><th>总价</th><th>加油站</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td><span class="badge badge-info">'+escapeHtml(r.fuel_type||'-')+'</span></td><td>'+(r.liters||0)+' L</td><td>'+(r.price_per_liter||0)+' 元/L</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+escapeHtml(r.station||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('fuel', st.page, totalPages, total);
   el.innerHTML = html;
 }
 
@@ -663,12 +714,20 @@ function renderInsurance(){
     el.innerHTML = html + emptyState('📋');
     return;
   }
+  var st = pageState.insurance;
+  var total = data.length;
+  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = data.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>险种</th><th>保险公司</th><th>起止日期</th><th>保费</th><th>保单号</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     var dateRange = formatDate(r.start_date) + ' ~ ' + (r.end_date?formatDate(r.end_date):'长期');
     html += '<tr><td>'+escapeHtml(r.insurance_type||'-')+'</td><td>'+escapeHtml(r.company||'-')+'</td><td style="font-size:12px">'+dateRange+'</td><td class="cost">'+formatMoney(r.premium)+'</td><td style="font-size:12px">'+escapeHtml(r.policy_number||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'insurance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'insurance\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('insurance', st.page, totalPages, total);
   el.innerHTML = html;
 }
 
@@ -681,12 +740,20 @@ function renderViolation(){
     el.innerHTML = html + emptyState('⚠️');
     return;
   }
+  var st = pageState.violation;
+  var total = data.length;
+  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = data.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>地点</th><th>罚款</th><th>扣分</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     var badge = r.status === '已处理' ? 'badge-success' : 'badge-danger';
     html += '<tr><td>'+formatDate(r.violation_date)+'</td><td>'+escapeHtml(r.violation_type||'-')+'</td><td style="font-size:12px">'+escapeHtml(r.location||'-')+'</td><td class="cost">'+formatMoney(r.fine_amount)+'</td><td>'+(r.demerit_points||0)+' 分</td><td><span class="badge '+badge+'">'+escapeHtml(r.status)+'</span></td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'violation\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'violation\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('violation', st.page, totalPages, total);
   el.innerHTML = html;
 }
 
@@ -694,18 +761,93 @@ function renderViolation(){
 function renderToll(){
   var el = document.getElementById('tab-toll');
   var data = allData.toll || [];
+  
+  // 先渲染查询表单
   var html = '<div class="section-title"><h2>🛣️ 高速费记录</h2><button class="add-btn" onclick="openModal(\'toll\')">+ 添加</button></div>';
-  if(data.length === 0){
+  
+  // 查询筛选表单
+  html += '<div class="filter-bar">'+
+    '<div class="input-group"><label>起始日期</label><input type="date" id="toll_from" value="'+escapeAttr(tollFilter.startDate)+'"></div>'+
+    '<div class="input-group"><label>结束日期</label><input type="date" id="toll_to" value="'+escapeAttr(tollFilter.endDate)+'"></div>'+
+    '<div class="input-group"><label>入口</label><input type="text" id="toll_entrance" placeholder="如：北京西" value="'+escapeAttr(tollFilter.entrance)+'"></div>'+
+    '<div class="input-group"><label>出口</label><input type="text" id="toll_exit" placeholder="如：上海南" value="'+escapeAttr(tollFilter.exit)+'"></div>'+
+    '<div class="input-group"><label>备注关键词</label><input type="text" id="toll_kw" placeholder="如：上班、回安国" value="'+escapeAttr(tollFilter.keyword)+'"></div>'+
+    '<button class="btn btn-primary" onclick="applyTollFilter()">🔍 查询</button>'+
+    '<button class="btn" style="background:#f1f5f9;color:var(--text-2nd);border:none" onclick="clearTollFilter()">重置</button>'+
+  '</div>';
+  
+  // 筛选数据（所有条件AND逻辑：同时满足）
+  var filtered = data;
+  if(tollFilter.startDate){
+    filtered = filtered.filter(function(r){ return r.toll_date >= tollFilter.startDate; });
+  }
+  if(tollFilter.endDate){
+    filtered = filtered.filter(function(r){ return r.toll_date <= tollFilter.endDate; });
+  }
+  if(tollFilter.entrance){
+    var kw = tollFilter.entrance.toLowerCase();
+    filtered = filtered.filter(function(r){ return (r.entrance||'').toLowerCase().indexOf(kw) >= 0; });
+  }
+  if(tollFilter.exit){
+    var kw = tollFilter.exit.toLowerCase();
+    filtered = filtered.filter(function(r){ return (r.exit||'').toLowerCase().indexOf(kw) >= 0; });
+  }
+  if(tollFilter.keyword){
+    var kw = tollFilter.keyword.toLowerCase();
+    filtered = filtered.filter(function(r){ return (r.notes||'').toLowerCase().indexOf(kw) >= 0; });
+  }
+  
+  // 汇总信息
+  var totalCount = filtered.length;
+  var totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r.amount)||0); }, 0);
+  html += '<div style="display:flex;gap:12px;margin-bottom:12px">'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;text-align:center">'+
+      '<div style="font-size:12px;color:var(--text-2nd)">查询结果</div>'+
+      '<div style="font-size:20px;font-weight:700;color:var(--primary)">'+totalCount+' <span style="font-size:12px;color:var(--text-2nd)">条</span></div>'+
+    '</div>'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;text-align:center">'+
+      '<div style="font-size:12px;color:var(--text-2nd)">总费用</div>'+
+      '<div style="font-size:20px;font-weight:700;color:var(--danger)">'+formatMoney(totalCost)+'</div>'+
+    '</div>'+
+  '</div>';
+  
+  if(filtered.length === 0){
     el.innerHTML = html + emptyState('🛣️');
     return;
   }
+  
+  // 分页
+  var st = pageState.toll;
+  var totalPages = Math.max(1, Math.ceil(totalCount / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = filtered.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>入口</th><th>出口</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     html += '<tr><td>'+formatDate(r.toll_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.entrance||'-')+'</td><td>'+escapeHtml(r.exit||'-')+'</td><td class="cost">'+formatMoney(r.amount)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'toll\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'toll\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('toll', st.page, totalPages, totalCount);
   el.innerHTML = html;
 }
+
+function applyTollFilter(){
+  tollFilter.startDate = document.getElementById('toll_from') ? document.getElementById('toll_from').value : '';
+  tollFilter.endDate = document.getElementById('toll_to') ? document.getElementById('toll_to').value : '';
+  tollFilter.entrance = document.getElementById('toll_entrance') ? document.getElementById('toll_entrance').value : '';
+  tollFilter.exit = document.getElementById('toll_exit') ? document.getElementById('toll_exit').value : '';
+  tollFilter.keyword = document.getElementById('toll_kw') ? document.getElementById('toll_kw').value : '';
+  pageState.toll.page = 1;
+  renderToll();
+}
+window.applyTollFilter = applyTollFilter;
+function clearTollFilter(){
+  tollFilter = { startDate: '', endDate: '', entrance: '', exit: '', keyword: '' };
+  pageState.toll.page = 1;
+  renderToll();
+}
+window.clearTollFilter = clearTollFilter;
 
 // ==================== Inspection ====================
 function renderInspection(){
@@ -716,12 +858,20 @@ function renderInspection(){
     el.innerHTML = html + emptyState('📅');
     return;
   }
+  var st = pageState.inspection;
+  var total = data.length;
+  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = data.slice(start, start + st.size);
+  
   html += '<div class="table-wrap"><table><thead><tr><th>检测日期</th><th>结果</th><th>下次到期</th><th>费用</th><th>操作</th></tr></thead><tbody>';
-  data.forEach(function(r){
+  pageData.forEach(function(r){
     var badge = r.result === '通过' ? 'badge-success' : 'badge-danger';
     html += '<tr><td>'+formatDate(r.inspection_date)+'</td><td><span class="badge '+badge+'">'+escapeHtml(r.result)+'</span></td><td style="font-size:12px">'+(r.next_due_date?formatDate(r.next_due_date):'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'inspection\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'inspection\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
+  html += renderPageNav('inspection', st.page, totalPages, total);
   el.innerHTML = html;
 }
 
@@ -1063,6 +1213,7 @@ async function deleteRecord(module, id){
     if(error) throw error;
     showToast('删除成功');
     await reloadModule(module);
+    pageState[module].page = 1;
     renderModule(module);
     renderDashboard();
   } catch(e){
@@ -1104,6 +1255,22 @@ async function handleChangePw(){
   }
 }
 window.handleChangePw = handleChangePw;
+
+// ==================== Pagination Helpers ====================
+function renderPageNav(module, currentPage, totalPages, total){
+  if(totalPages <= 1) return '';
+  var html = '<div class="pagination">';
+  html += '<button '+(currentPage===1?'disabled':'')+' onclick="goPage(\''+module+'\','+(currentPage-1)+')">上一页</button>';
+  html += '<span class="page-info">第 '+currentPage+' / '+totalPages+' 页（共'+total+'条）</span>';
+  html += '<button '+(currentPage===totalPages?'disabled':'')+' onclick="goPage(\''+module+'\','+(currentPage+1)+')">下一页</button>';
+  html += '</div>';
+  return html;
+}
+function goPage(module, page){
+  pageState[module].page = page;
+  renderModule(module);
+}
+window.goPage = goPage;
 
 // ==================== Helpers ====================
 function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
