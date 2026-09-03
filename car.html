@@ -646,17 +646,18 @@ function renderDashboard(){
   var totalCost = 0, monthCost = 0, yearCost = 0;
   var fuelCount = 0, expenseCount = 0, rechargeCount = 0;
 
-  // Car modules
+  // Car modules (fuel: only expense, not recharge)
   ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
+      if(mod === 'fuel' && r.record_type === 'recharge') return; // skip fuel recharge
       var cost = parseFloat(r.cost || r.total_cost || r.premium || r.fine_amount || r.total_price || r.amount || 0);
       totalCost += cost;
       var d = (r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,7);
       if(d === ym) monthCost += cost;
       var y = (r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,4);
       if(parseInt(y) === yy) yearCost += cost;
-      if(mod === 'fuel' && r.record_type !== 'recharge') fuelCount++;
+      if(mod === 'fuel') fuelCount++;
     });
   });
 
