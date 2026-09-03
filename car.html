@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="汽车养护记录">
+  <meta name="apple-mobile-web-app-title" content="家庭记账管家">
 <meta name="theme-color" content="#0ea5e9">
-<title>汽车养护记录</title>
+  <title>家庭记账管家</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -209,9 +209,9 @@ tbody tr:hover{background:#f8fafc}
 <div id="loginScreen" style="display:none">
   <div class="login-card">
     <div class="logo">
-      <div class="icon">🚗</div>
-      <h1>汽车养护记录</h1>
-      <p>保养 · 维修 · 加油 · 保险 · 违章 · 年检</p>
+      <div class="icon">🏠</div>
+      <h1>家庭记账管家</h1>
+      <p>车辆养护 · 家庭支出 · 收支明细</p>
     </div>
     <div class="input-group">
       <label>登录密码</label>
@@ -228,8 +228,8 @@ tbody tr:hover{background:#f8fafc}
   <!-- Header -->
   <div class="app-header">
     <div class="title">
-      <span>🚗</span>
-      <span>汽车养护记录</span>
+      <span>🏠</span>
+      <span>家庭记账管家</span>
       <span class="vehicle-badge" id="vehicleBadge"></span>
     </div>
     <div class="header-actions">
@@ -246,8 +246,17 @@ tbody tr:hover{background:#f8fafc}
     <div class="tab-item" data-tab="fuel">⛽ 加油</div>
     <div class="tab-item" data-tab="insurance">📋 保险</div>
     <div class="tab-item" data-tab="violation">⚠️ 违章</div>
-    <div class="tab-item" data-tab="toll">🛣️ 高速费</div>
+    <div class="tab-item" data-tab="toll">🛣️ 高速</div>
     <div class="tab-item" data-tab="inspection">📅 年检</div>
+    <div class="tab-item" style="opacity:.3;cursor:default;padding:0 2px">|</div>
+    <div class="tab-item" data-tab="dining">🍽️ 餐饮</div>
+    <div class="tab-item" data-tab="shopping">🛍️ 购物</div>
+    <div class="tab-item" data-tab="communication">📱 通讯</div>
+    <div class="tab-item" data-tab="electricity">⚡ 电费</div>
+    <div class="tab-item" data-tab="water">💧 水费</div>
+    <div class="tab-item" data-tab="heating">🔥 取暖</div>
+    <div class="tab-item" data-tab="property">🏠 物业</div>
+    <div class="tab-item" data-tab="social">🎁 人情</div>
     <div class="tab-item" data-tab="vehicle">🚗 车辆</div>
     <div class="tab-item" data-tab="export">📤 导出</div>
   </div>
@@ -267,6 +276,15 @@ tbody tr:hover{background:#f8fafc}
   <div class="tab-content" id="tab-violation"></div>
   <div class="tab-content" id="tab-toll"></div>
   <div class="tab-content" id="tab-inspection"></div>
+  <!-- Family expense tabs -->
+  <div class="tab-content" id="tab-dining"></div>
+  <div class="tab-content" id="tab-shopping"></div>
+  <div class="tab-content" id="tab-communication"></div>
+  <div class="tab-content" id="tab-electricity"></div>
+  <div class="tab-content" id="tab-water"></div>
+  <div class="tab-content" id="tab-heating"></div>
+  <div class="tab-content" id="tab-property"></div>
+  <div class="tab-content" id="tab-social"></div>
   <div class="tab-content" id="tab-vehicle"></div>
   <div class="tab-content" id="tab-export"></div>
 </div>
@@ -335,11 +353,35 @@ try {
   console.error('Supabase init failed:', e.message);
 }
 
-// ==================== State ====================
-var currentTab = 'dashboard';
-var editingModule = null;
-var editingId = null;
-var allData = {};
+// ==================== Family expense module config ====================
+var FAMILY_CATEGORIES = {
+  dining: { title: '🍽️ 餐饮美食', dateField: 'expense_date', costField: 'amount', hasType: true },
+  shopping: { title: '🛍️ 日常购物', dateField: 'expense_date', costField: 'amount', hasType: false },
+  communication: { title: '📱 通讯费用', dateField: 'expense_date', costField: 'amount', hasType: true },
+  electricity: { title: '⚡ 电费', dateField: 'expense_date', costField: 'amount', hasType: true },
+  water: { title: '💧 水费', dateField: 'expense_date', costField: 'amount', hasType: false },
+  heating: { title: '🔥 取暖费', dateField: 'expense_date', costField: 'amount', hasType: false },
+  property: { title: '🏠 物业费', dateField: 'expense_date', costField: 'amount', hasType: false },
+  social: { title: '🎁 人情往来', dateField: 'expense_date', costField: 'amount', hasType: false }
+};
+// Module to Supabase table mapping
+var TABLE_MAP = {
+  maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel',
+  insurance:'car_insurance', toll:'car_toll', violation:'car_violation',
+  inspection:'car_inspection', vehicle:'car_vehicle',
+  dining:'family_expenses', shopping:'family_expenses', communication:'family_expenses',
+  electricity:'family_expenses', water:'family_expenses', heating:'family_expenses',
+  property:'family_expenses', social:'family_expenses'
+};
+// Title mapping
+var MODULE_TITLES = {
+  maintenance:'保养记录', repair:'维修记录', fuel:'加油记录',
+  insurance:'保险记录', toll:'高速费记录', violation:'违章记录',
+  inspection:'年检记录',
+  dining:'餐饮记录', shopping:'购物记录', communication:'通讯记录',
+  electricity:'电费记录', water:'水费记录', heating:'取暖费记录',
+  property:'物业费记录', social:'人情往来记录'
+};
 // Pagination state
 var pageState = {
   maintenance: { page: 1, size: 15 },
@@ -348,7 +390,15 @@ var pageState = {
   insurance: { page: 1, size: 15 },
   toll: { page: 1, size: 15 },
   violation: { page: 1, size: 15 },
-  inspection: { page: 1, size: 15 }
+  inspection: { page: 1, size: 15 },
+  dining: { page: 1, size: 15 },
+  shopping: { page: 1, size: 15 },
+  communication: { page: 1, size: 15 },
+  electricity: { page: 1, size: 15 },
+  water: { page: 1, size: 15 },
+  heating: { page: 1, size: 15 },
+  property: { page: 1, size: 15 },
+  social: { page: 1, size: 15 }
 };
 // Toll filter state (combined query: all conditions must match)
 var tollFilter = { startDate: '', endDate: '', entrance: '', exit: '', keyword: '' };
@@ -357,7 +407,15 @@ var moduleFilters = {
   maintenance: { startDate: '', endDate: '' },
   repair: { startDate: '', endDate: '' },
   fuel: { startDate: '', endDate: '' },
-  insurance: { startDate: '', endDate: '' }
+  insurance: { startDate: '', endDate: '' },
+  dining: { startDate: '', endDate: '' },
+  shopping: { startDate: '', endDate: '' },
+  communication: { startDate: '', endDate: '' },
+  electricity: { startDate: '', endDate: '' },
+  water: { startDate: '', endDate: '' },
+  heating: { startDate: '', endDate: '' },
+  property: { startDate: '', endDate: '' },
+  social: { startDate: '', endDate: '' }
 };
 // Build a date-range filter bar for a module
 function buildDateFilterBar(module){
@@ -475,6 +533,7 @@ function switchTab(tab){
   el.scrollTop = 0;
   if(tab === 'toll') renderToll();
   if(tab === 'export') renderExport();
+  if(FAMILY_CATEGORIES[tab]) renderFamilyModule(tab);
 }
 
 // ==================== Init ====================
@@ -494,6 +553,7 @@ async function init(){
   renderToll();
   renderInspection();
   renderVehicle();
+  Object.keys(FAMILY_CATEGORIES).forEach(function(mod){ renderFamilyModule(mod); });
   renderExport();
 }
 
@@ -507,6 +567,24 @@ async function loadAllData(){
     if(!error) allData[key] = data || [];
     else allData[key] = [];
   }
+  // Load family_expenses and distribute by category
+  var { data, error } = await supabase.from('family_expenses').select('*').order('id',{ascending:false});
+  Object.keys(FAMILY_CATEGORIES).forEach(function(cat){ allData[cat] = []; });
+  if(!error && data){
+    data.forEach(function(r){
+      if(r.category && FAMILY_CATEGORIES[r.category]) allData[r.category].push(r);
+    });
+  }
+}
+
+async function reloadModule(module){
+  var table = TABLE_MAP[module];
+  if(!table) return;
+  var query = supabase.from(table).select('*').order('id',{ascending:false});
+  if(FAMILY_CATEGORIES[module]) query = query.eq('category', module);
+  var { data } = await query;
+  allData[module] = data || [];
+  pageState[module].page = 1;
 }
 
 async function loadVehicleBadge(){
@@ -518,25 +596,16 @@ async function loadVehicleBadge(){
   }
 }
 
-async function reloadModule(module){
-  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', toll:'car_toll', violation:'car_violation', inspection:'car_inspection' };
-  var table = tableMap[module];
-  if(!table) return;
-  var { data } = await supabase.from(table).select('*').order('id',{ascending:false});
-  allData[module] = data || [];
-  pageState[module].page = 1;
-}
-
 // ==================== Dashboard ====================
 function renderDashboard(){
   var now = new Date();
   var ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   var yy = now.getFullYear();
-  
+
   var totalCost = 0, monthCost = 0, yearCost = 0;
-  var fuelCount = 0;
-  
-  // Calculate costs
+  var fuelCount = 0, expenseCount = 0, rechargeCount = 0;
+
+  // Car modules
   ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
@@ -546,17 +615,35 @@ function renderDashboard(){
       if(d === ym) monthCost += cost;
       var y = (r.service_date || r.repair_date || r.fuel_date || r.toll_date || r.start_date || r.violation_date || r.inspection_date || '').substring(0,4);
       if(parseInt(y) === yy) yearCost += cost;
+      if(mod === 'fuel') fuelCount++;
     });
-    if(mod === 'fuel') fuelCount = (allData[mod]||[]).length;
   });
-  
+
+  // Family expense modules (only count 'expense' type, exclude 'recharge')
+  Object.keys(FAMILY_CATEGORIES).forEach(function(mod){
+    if(!allData[mod]) return;
+    allData[mod].forEach(function(r){
+      if(r.record_type === 'recharge'){
+        rechargeCount++;
+        return;
+      }
+      expenseCount++;
+      var cost = parseFloat(r.amount) || 0;
+      totalCost += cost;
+      var d = (r.expense_date || '').substring(0,7);
+      if(d === ym) monthCost += cost;
+      var y = (r.expense_date || '').substring(0,4);
+      if(parseInt(y) === yy) yearCost += cost;
+    });
+  });
+
   // Stat cards
-  document.getElementById('statGrid').innerHTML = 
-    statCard('本月花费', formatMoney(monthCost), 'cost') +
-    statCard('本年花费', formatMoney(yearCost), 'cost') +
-    statCard('累计花费', formatMoney(totalCost), 'cost') +
+  document.getElementById('statGrid').innerHTML =
+    statCard('本月支出', formatMoney(monthCost), 'cost') +
+    statCard('本年支出', formatMoney(yearCost), 'cost') +
+    statCard('累计支出', formatMoney(totalCost), 'cost') +
     statCard('加油次数', fuelCount + '次', '');
-  
+
   // Monthly chart
   renderMonthlyChart();
   // Fuel chart
@@ -574,9 +661,10 @@ function renderMonthlyChart(){
   var now = new Date();
   for(var i=5; i>=0; i--){
     var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { maintenance:0, repair:0, fuel:0, toll:0, other:0 };
+    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { maintenance:0, repair:0, fuel:0, toll:0, family:0, other:0 };
   }
-  
+
+  // Car modules (fuel: only expense, not recharge)
   ['maintenance','repair','fuel','insurance','toll','violation','inspection'].forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
@@ -591,7 +679,19 @@ function renderMonthlyChart(){
       else months[ym].other += cost;
     });
   });
-  
+
+  // Family expense modules (only expense, not recharge)
+  Object.keys(FAMILY_CATEGORIES).forEach(function(mod){
+    if(!allData[mod]) return;
+    allData[mod].forEach(function(r){
+      if(r.record_type === 'recharge') return; // skip recharge
+      var ym = (r.expense_date || '').substring(0,7);
+      if(!months[ym]) return;
+      var cost = parseFloat(r.amount) || 0;
+      months[ym].family += cost;
+    });
+  });
+
   var labels = Object.keys(months);
   var ctx = document.getElementById('monthlyChart').getContext('2d');
   if(monthlyChart) monthlyChart.destroy();
@@ -604,6 +704,7 @@ function renderMonthlyChart(){
         { label:'维修', data:labels.map(function(m){return months[m].repair;}), backgroundColor:'#f59e0b' },
         { label:'加油', data:labels.map(function(m){return months[m].fuel;}), backgroundColor:'#16a34a' },
         { label:'高速费', data:labels.map(function(m){return months[m].toll;}), backgroundColor:'#f59e0b' },
+        { label:'家庭支出', data:labels.map(function(m){return months[m].family;}), backgroundColor:'#8b5cf6' },
         { label:'其他', data:labels.map(function(m){return months[m].other;}), backgroundColor:'#94a3b8' }
       ]
     },
@@ -662,6 +763,20 @@ function renderRecentList(){
       else if(mod === 'insurance') title = r.insurance_type || '保险';
       else if(mod === 'violation') title = r.violation_type || '违章';
       else if(mod === 'inspection') title = '年检' + (r.result === '通过' ? '通过' : '未通过');
+      items.push({ date:date, icon:icon, title:title, cost:cost });
+    });
+  });
+  // Family modules - only expense, not recharge
+  Object.keys(FAMILY_CATEGORIES).forEach(function(mod){
+    if(!allData[mod]) return;
+    allData[mod].forEach(function(r){
+      if(r.record_type === 'recharge') return; // skip recharge
+      var date = r.expense_date || '';
+      var cost = parseFloat(r.amount) || 0;
+      var iconMap = { dining:'🍽️', shopping:'🛍️', communication:'📱', electricity:'⚡', water:'💧', heating:'🔥', property:'🏠', social:'🎁' };
+      var icon = iconMap[mod] || '📝';
+      var title = r.merchant || FAMILY_CATEGORIES[mod].title;
+      if(mod === 'shopping' && r.items && r.items.length) title = r.items.join('、');
       items.push({ date:date, icon:icon, title:title, cost:cost });
     });
   });
@@ -762,9 +877,9 @@ function renderFuel(){
   var start = (st.page - 1) * st.size;
   var pageData = filtered.slice(start, start + st.size);
   
-  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>油品</th><th>升数</th><th>单价</th><th>总价</th><th>加油站</th><th>操作</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>油品</th><th>油量</th><th>单价</th><th>总价</th><th>加油站</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
-    html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td><span class="badge badge-info">'+escapeHtml(r.fuel_type||'-')+'</span></td><td>'+(r.liters||0)+' L</td><td>'+(r.price_per_liter||0)+' 元/L</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+escapeHtml(r.station||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
+    html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.fuel_type||'-')+'</td><td>'+(r.liters?r.liters+' L':'-')+'</td><td>'+(r.price_per_liter?r.price_per_liter+' 元':'-')+'</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+escapeHtml(r.station||'-')+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
   html += renderPageNav('fuel', st.page, totalPages, totalCount);
@@ -945,6 +1060,90 @@ function renderInspection(){
   el.innerHTML = html;
 }
 
+// ==================== Family Expense Modules ====================
+function renderFamilyModule(module){
+  var cfg = FAMILY_CATEGORIES[module];
+  var el = document.getElementById('tab-' + module);
+  var data = allData[module] || [];
+  var title = cfg.title;
+  var icon = title.substring(0,2);
+  var html = '<div class="section-title"><h2>'+title+'</h2><button class="add-btn" onclick="openModal(\''+module+'\')">+ 添加</button></div>';
+  html += buildDateFilterBar(module);
+  var filtered = getFilteredByDate(module, cfg.dateField);
+  var totalCount = filtered.length;
+  var totalCost = 0, totalRecharge = 0;
+  if(cfg.hasType){
+    totalCost = filtered.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r[cfg.costField])||0):0); }, 0);
+    totalRecharge = filtered.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r[cfg.costField])||0):0); }, 0);
+  } else {
+    totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r[cfg.costField])||0); }, 0);
+  }
+  html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">查询结果</div><div style="font-size:20px;font-weight:700;color:var(--primary)">'+totalCount+' <span style="font-size:12px;color:var(--text-2nd)">条</span></div></div>';
+  if(cfg.hasType){
+    html += '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">消费</div><div style="font-size:20px;font-weight:700;color:var(--danger)">'+formatMoney(totalCost)+'</div></div>'+
+      '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">充值</div><div style="font-size:20px;font-weight:700;color:var(--success)">'+formatMoney(totalRecharge)+'</div></div>';
+    var allModuleData = allData[module] || [];
+    var rechargeTotal = allModuleData.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r[cfg.costField])||0):0); }, 0);
+    var prepaidMap = { communication:'mobile_account', electricity:'electric_account' };
+    var prepaidMethod = prepaidMap[module];
+    var prepaidExpense = 0;
+    if(prepaidMethod){
+      prepaidExpense = allModuleData.reduce(function(sum, r){ return sum + ((r.record_type==='expense' && r.payment_method===prepaidMethod)?(parseFloat(r[cfg.costField])||0):0); }, 0);
+    }
+    var balance = rechargeTotal - prepaidExpense;
+    if(prepaidMethod && balance >= 0){
+      html += '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">账户余额</div><div style="font-size:20px;font-weight:700;color:#2563eb">'+formatMoney(balance)+'</div></div>';
+    }
+  } else {
+    html += '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">总费用</div><div style="font-size:20px;font-weight:700;color:var(--danger)">'+formatMoney(totalCost)+'</div></div>';
+  }
+  html += '</div>';
+  if(filtered.length === 0){
+    el.innerHTML = html + emptyState(icon);
+    return;
+  }
+  var st = pageState[module];
+  var totalPages = Math.max(1, Math.ceil(totalCount / st.size));
+  if(st.page > totalPages) st.page = totalPages;
+  var start = (st.page - 1) * st.size;
+  var pageData = filtered.slice(start, start + st.size);
+  var ths = '<th>日期</th>';
+  if(cfg.hasType) ths += '<th>类型</th>';
+  ths += '<th>'+(module==='shopping'?'物品/商家':'商家/项目')+'</th>';
+  if(cfg.hasType) ths += '<th>支付方式</th>';
+  ths += '<th>金额</th><th>备注</th><th>操作</th>';
+  html += '<div class="table-wrap"><table><thead><tr>'+ths+'</tr></thead><tbody>';
+  pageData.forEach(function(r){
+    var typeBadge = '';
+    if(cfg.hasType){
+      if(r.record_type === 'expense') typeBadge = '<span class="badge badge-danger">消费</span>';
+      else if(r.record_type === 'recharge') typeBadge = '<span class="badge badge-success">充值</span>';
+      else typeBadge = '<span class="badge">'+escapeHtml(r.record_type||'')+'</span>';
+    }
+    var merchant = escapeHtml(r.merchant || '-');
+    if(module === 'shopping' && r.items && r.items.length){
+      merchant = escapeHtml(r.items.join('、')) + '<br><span style="font-size:12px;color:var(--text-2nd)">'+merchant+'</span>';
+    }
+    var payment = '';
+    if(cfg.hasType){
+      var pmMap = { wechat:'微信支付', alipay:'支付宝', credit_card:'信用卡', debit_card:'储蓄卡', cash:'现金', mobile_account:'手机预存', electric_account:'电费预存', fuel_card:'加油卡' };
+      payment = pmMap[r.payment_method] || r.payment_method || '-';
+    }
+    var tds = '<td>'+formatDate(r.expense_date)+'</td>';
+    if(cfg.hasType) tds += '<td>'+typeBadge+'</td>';
+    tds += '<td>'+merchant+'</td>';
+    if(cfg.hasType) tds += '<td>'+payment+'</td>';
+    tds += '<td class="cost">'+formatMoney(r[cfg.costField])+'</td>';
+    tds += '<td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td>';
+    tds += '<td><div class="row-actions"><button class="action-edit" onclick="openModal(\''+module+'\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\''+module+'\','+r.id+')">🗑️</button></div></td>';
+    html += '<tr>'+tds+'</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += renderPageNav(module, st.page, totalPages, totalCount);
+  el.innerHTML = html;
+}
+
 // ==================== Vehicle ====================
 function renderVehicle(){
   var el = document.getElementById('tab-vehicle');
@@ -1013,6 +1212,7 @@ function openModal(module, id){
   else if(module === 'violation') body.innerHTML = violationForm(id);
   else if(module === 'toll') body.innerHTML = tollForm(id);
   else if(module === 'inspection') body.innerHTML = inspectionForm(id);
+  else if(FAMILY_CATEGORIES[module]) body.innerHTML = familyForm(module, id);
   
   document.getElementById('modalOverlay').classList.add('active');
   
@@ -1031,7 +1231,7 @@ function closeModal(){
 window.closeModal = closeModal;
 
 function moduleTitle(mod){
-  return { maintenance:'保养记录', repair:'维修记录', fuel:'加油记录', insurance:'保险记录', toll:'高速费记录', violation:'违章记录', inspection:'年检记录' }[mod] || '记录';
+  return MODULE_TITLES[mod] || '记录';
 }
 
 // --- Maintenance Form ---
@@ -1086,16 +1286,17 @@ function fuelForm(id){
       ig('f_mileage','里程(km)', r.mileage || '', 'number') +
     '</div>' +
     '<div class="input-group"><label>油品型号</label><select id="f_type">' +
-      types.map(function(t){ return '<option value="'+t+'"'+(r.fuel_type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+      types.map(function(t){ return '<option value="'+t.value+'"'+(r.fuel_type===t.value?' selected':'')+'>'+t.label+'</option>'; }).join('') +
     '</select></div>' +
     '<div class="form-row">' +
       ig('f_liters','加油量(升)', r.liters || '', 'number') +
       ig('f_price','单价(元/升)', r.price_per_liter || '', 'number') +
     '</div>' +
     '<div class="form-row">' +
-      ig('f_total','总价(元)', r.total_price || '', 'number') +
+      ig('f_total','金额(元)', r.total_price || '', 'number') +
     '</div>' +
-    ig('f_station','加油站', r.station || '', '如：中石化XX站');
+    ig('f_station','加油站', r.station || '', '如：中石化XX站') +
+    ig('f_notes','备注', r.notes || '', '可选');
   return html;
 }
 
@@ -1163,6 +1364,63 @@ function tollForm(id){
   return html;
 }
 
+// --- Family Expense Form ---
+function familyForm(module, id){
+  var cfg = FAMILY_CATEGORIES[module];
+  var r = id ? findRecord(module, id) : {};
+  var recordTypes = [
+    {value:'expense', label:'实际消费'},
+    {value:'recharge', label:'充值/预存'}
+  ];
+  var payments = [
+    {value:'wechat', label:'微信支付'},
+    {value:'alipay', label:'支付宝'},
+    {value:'credit_card', label:'信用卡'},
+    {value:'debit_card', label:'储蓄卡'},
+    {value:'cash', label:'现金'}
+  ];
+  // 通讯和电费额外加预存账户支付方式
+  if(module === 'communication'){
+    payments.push({value:'mobile_account', label:'手机预存账户'});
+  }
+  if(module === 'electricity'){
+    payments.push({value:'electric_account', label:'电费预存账户'});
+  }
+
+  var hasType = cfg.hasType;
+  var html = '<div class="form-row">' +
+    ig(module+'_date','日期', r.expense_date || todayStr(), 'date') +
+    ig(module+'_amount','金额(元)', r.amount || '', 'number') +
+  '</div>';
+
+  if(hasType){
+    html += '<div class="input-group"><label>记录类型</label><select id="'+module+'_record_type">' +
+      recordTypes.map(function(t){ return '<option value="'+t.value+'"'+(r.record_type===t.value?' selected':'')+'>'+t.label+'</option>'; }).join('') +
+    '</select></div>';
+  }
+
+  html += '<div class="input-group"><label>支付方式</label><select id="'+module+'_payment">' +
+    payments.map(function(p){ return '<option value="'+p.value+'"'+(r.payment_method===p.value?' selected':'')+'>'+p.label+'</option>'; }).join('') +
+  '</select></div>';
+
+  var merchantLabel = module === 'dining' ? '商家/餐厅' :
+                      module === 'shopping' ? '商家/平台' :
+                      module === 'communication' ? '运营商/平台' :
+                      module === 'electricity' ? '供电单位' :
+                      module === 'water' ? '供水单位' :
+                      module === 'heating' ? '供暖单位' :
+                      module === 'property' ? '物业公司' :
+                      module === 'social' ? '对象/场合' : '商家';
+  html += ig(module+'_merchant', merchantLabel, r.merchant || '', module === 'social' ? '如：张三结婚、李四家搬家' : '');
+
+  if(module === 'shopping'){
+    html += '<div class="input-group"><label>购买物品清单（用逗号分隔）</label><textarea id="'+module+'_items" placeholder="如：大米, 食用油, 洗衣液">'+escapeHtml((r.items||[]).join(', '))+'</textarea></div>';
+  }
+
+  html += '<div class="input-group"><label>备注</label><textarea id="'+module+'_notes">'+escapeHtml(r.notes||'')+'</textarea></div>';
+  return html;
+}
+
 // --- Inspection Form ---
 function inspectionForm(id){
   var r = id ? findRecord('inspection', id) : {};
@@ -1187,8 +1445,7 @@ async function saveModalRecord(){
   if(!editingModule) return;
   var module = editingModule;
   var id = editingId;
-  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', toll:'car_toll', violation:'car_violation', inspection:'car_inspection' };
-  var table = tableMap[module];
+  var table = TABLE_MAP[module];
   
   var data = {};
   try{
@@ -1216,6 +1473,7 @@ async function saveModalRecord(){
       data.price_per_liter = parseFloat(val('f_price')) || 0;
       data.total_price = parseFloat(val('f_total')) || 0;
       data.station = val('f_station');
+      data.notes = val('f_notes') || '';
     } else if(module === 'insurance'){
       data.insurance_type = val('i_type');
       data.company = val('i_company');
@@ -1245,6 +1503,25 @@ async function saveModalRecord(){
       data.next_due_date = val('in_next') || null;
       data.cost = parseFloat(val('in_cost')) || 0;
       data.notes = val('in_notes');
+    } else if(FAMILY_CATEGORIES[module]){
+      data.category = module;
+      data.record_type = val(module+'_record_type') || 'expense';
+      data.expense_date = val(module+'_date');
+      data.amount = parseFloat(val(module+'_amount')) || 0;
+      data.payment_method = val(module+'_payment') || '';
+      data.merchant = val(module+'_merchant') || '';
+      data.notes = val(module+'_notes') || '';
+      // For shopping, items is a text list; for others, leave empty
+      if(module === 'shopping'){
+        var itemsText = val(module+'_items') || '';
+        data.items = itemsText ? itemsText.split(/[,，]/).map(function(s){ return s.trim(); }).filter(function(s){ return s; }) : [];
+      }
+      if(module === 'communication'){
+        data.merchant = val(module+'_merchant') || '运营商';
+      }
+      if(module === 'electricity'){
+        data.merchant = val(module+'_merchant') || '供电局';
+      }
     }
   } catch(e){
     showToast('数据格式错误', 'error');
@@ -1255,6 +1532,9 @@ async function saveModalRecord(){
   try{
     if(id){
       var { error } = await supabase.from(table).update(data).eq('id', id);
+      if(FAMILY_CATEGORIES[module]) {
+        await supabase.from(table).update(data).eq('id', id).eq('category', module);
+      }
     } else {
       var { error } = await supabase.from(table).insert(data);
     }
@@ -1276,10 +1556,12 @@ window.saveModalRecord = saveModalRecord;
 // ==================== Delete ====================
 async function deleteRecord(module, id){
   if(!confirm('确定要删除这条记录吗？')) return;
-  var tableMap = { maintenance:'car_maintenance', repair:'car_repair', fuel:'car_fuel', insurance:'car_insurance', toll:'car_toll', violation:'car_violation', inspection:'car_inspection' };
-  var table = tableMap[module];
+  var table = TABLE_MAP[module];
+  if(!table) return;
   try{
-    var { error } = await supabase.from(table).delete().eq('id', id);
+    var query = supabase.from(table).delete().eq('id', id);
+    if(FAMILY_CATEGORIES[module]) query = query.eq('category', module);
+    var { error } = await query;
     if(error) throw error;
     showToast('删除成功');
     await reloadModule(module);
@@ -1367,6 +1649,7 @@ function renderModule(module){
   else if(module === 'insurance') renderInsurance();
   else if(module === 'violation') renderViolation();
   else if(module === 'inspection') renderInspection();
+  else if(FAMILY_CATEGORIES[module]) renderFamilyModule(module);
 }
 function emptyState(icon){ return '<div class="table-wrap"><div class="empty"><div class="icon">'+icon+'</div><p>暂无记录，点击"添加"开始记录</p></div></div>'; }
 function formatDate(d){
@@ -1481,7 +1764,15 @@ function renderExport(){
     { key:'insurance', name:'保险记录', icon:'📋', color:'#8b5cf6' },
     { key:'violation', name:'违章记录', icon:'🚗', color:'#ec4899' },
     { key:'toll', name:'高速费记录', icon:'🛣️', color:'#f59e0b' },
-    { key:'inspection', name:'年检记录', icon:'✅', color:'#10b981' }
+    { key:'inspection', name:'年检记录', icon:'✅', color:'#10b981' },
+    { key:'dining', name:'餐饮记录', icon:'🍽️', color:'#f97316' },
+    { key:'shopping', name:'购物记录', icon:'🛍️', color:'#06b6d4' },
+    { key:'communication', name:'通讯记录', icon:'📱', color:'#84cc16' },
+    { key:'electricity', name:'电费记录', icon:'⚡', color:'#eab308' },
+    { key:'water', name:'水费记录', icon:'💧', color:'#0ea5e9' },
+    { key:'heating', name:'取暖记录', icon:'🔥', color:'#ef4444' },
+    { key:'property', name:'物业记录', icon:'🏠', color:'#6366f1' },
+    { key:'social', name:'人情往来', icon:'🎁', color:'#ec4899' }
   ];
   var html = '<div style="padding:16px">' +
     '<div style="margin-bottom:20px;text-align:center">' +
@@ -1504,7 +1795,7 @@ function renderExport(){
       '<button onclick="exportModule()" style="background:#3b82f6;color:#fff;border:none;border-radius:10px;padding:14px 48px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(59,130,246,0.3);transition:all 0.2s">' +
         '📥 导出全部记录为 .xlsx</button>' +
     '</div>' +
-    '<div style="text-align:center;color:#94a3b8;font-size:12px;margin-top:8px">文件名：汽车养护记录_YYYY-MM-DD.xlsx</div>' +
+    '<div style="text-align:center;color:#94a3b8;font-size:12px;margin-top:8px">文件名：家庭记账_' + todayStr() + '.xlsx</div>' +
   '</div>';
   el.innerHTML = html;
 }
@@ -1512,7 +1803,7 @@ window.renderExport = renderExport;
 
 // ==================== Export Excel ====================
 function exportModule(module){
-  var modules = module ? [module] : ['maintenance','repair','fuel','insurance','toll','violation','inspection'];
+  var modules = module ? [module] : ['maintenance','repair','fuel','insurance','toll','violation','inspection','dining','shopping','communication','electricity','water','heating','property','social'];
   var hasData = false;
   modules.forEach(function(m){
     if((allData[m]||[]).length > 0) hasData = true;
@@ -1523,11 +1814,19 @@ function exportModule(module){
   var sheetConfigs = {
     maintenance: { title:'保养记录', headers:['日期','里程(km)','保养项目','店铺','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.service_date), r.mileage||'', (r.items||[]).join('、'), r.shop||'', r.cost||0, r.notes||'']; } },
     repair: { title:'维修记录', headers:['日期','里程(km)','故障描述','维修项目','零件及费用','店铺','总费用(元)','备注'], mapFn:function(r){ var ps=(r.parts||[]).map(function(p){return(p.name||'')+':'+(p.cost||0);}).join('; '); return [formatDate(r.repair_date), r.mileage||'', r.issue_description||'', r.repair_items||'', ps, r.shop||'', r.total_cost||0, r.notes||'']; } },
-    fuel: { title:'加油记录', headers:['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站'], mapFn:function(r){ return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||'']; } },
+    fuel: { title:'加油记录', headers:['日期','里程(km)','油品型号','加油量(L)','单价(元/L)','总价(元)','加油站','备注'], mapFn:function(r){ return [formatDate(r.fuel_date), r.mileage||'', r.fuel_type||'', r.liters||0, r.price_per_liter||0, r.total_price||0, r.station||'', r.notes||'']; } },
     insurance: { title:'保险记录', headers:['险种','保险公司','起保日期','到期日期','保费(元)','保单号','理赔记录'], mapFn:function(r){ return [r.insurance_type||'', r.company||'', formatDate(r.start_date), r.end_date?formatDate(r.end_date):'长期', r.premium||0, r.policy_number||'', r.claim_records||'']; } },
     violation: { title:'违章记录', headers:['日期','违章类型','地点','罚款(元)','扣分','状态','备注'], mapFn:function(r){ return [formatDate(r.violation_date), r.violation_type||'', r.location||'', r.fine_amount||0, r.demerit_points||0, r.status||'', r.notes||'']; } },
     inspection: { title:'年检记录', headers:['检测日期','结果','下次到期','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.inspection_date), r.result||'', r.next_due_date?formatDate(r.next_due_date):'', r.cost||0, r.notes||'']; } },
-    toll: { title:'高速费记录', headers:['日期','里程(km)','入口','出口','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.toll_date), r.mileage||'', r.entrance||'', r.exit||'', r.amount||0, r.notes||'']; } }
+    toll: { title:'高速费记录', headers:['日期','里程(km)','入口','出口','费用(元)','备注'], mapFn:function(r){ return [formatDate(r.toll_date), r.mileage||'', r.entrance||'', r.exit||'', r.amount||0, r.notes||'']; } },
+    dining: { title:'餐饮记录', headers:['类型','日期','商家','金额(元)','支付方式','备注'], mapFn:function(r){ return [r.record_type==='expense'?'消费':'充值', formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    shopping: { title:'购物记录', headers:['类型','日期','物品清单','商家','金额(元)','支付方式','备注'], mapFn:function(r){ return [r.record_type==='expense'?'消费':'充值', formatDate(r.expense_date), (r.items||[]).join('、'), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    communication: { title:'通讯记录', headers:['类型','日期','运营商','金额(元)','支付方式','备注'], mapFn:function(r){ return [r.record_type==='expense'?'消费':'充值', formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    electricity: { title:'电费记录', headers:['类型','日期','供电单位','金额(元)','支付方式','备注'], mapFn:function(r){ return [r.record_type==='expense'?'消费':'充值', formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    water: { title:'水费记录', headers:['日期','供水单位','金额(元)','支付方式','备注'], mapFn:function(r){ return [formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    heating: { title:'取暖记录', headers:['日期','供暖单位','金额(元)','支付方式','备注'], mapFn:function(r){ return [formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    property: { title:'物业记录', headers:['日期','物业公司','金额(元)','支付方式','备注'], mapFn:function(r){ return [formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } },
+    social: { title:'人情往来', headers:['日期','对象/场合','金额(元)','支付方式','备注'], mapFn:function(r){ return [formatDate(r.expense_date), r.merchant||'', r.amount||0, r.payment_method||'', r.notes||'']; } }
   };
   
   modules.forEach(function(m){
@@ -1541,8 +1840,8 @@ function exportModule(module){
     XLSX.utils.book_append_sheet(wb, ws, cfg.title);
   });
   
-  XLSX.writeFile(wb, '汽车养护记录_' + todayStr() + '.xlsx');
-  showToast('✅ 已导出：汽车养护记录_' + todayStr() + '.xlsx');
+  XLSX.writeFile(wb, '家庭记账_' + todayStr() + '.xlsx');
+  showToast('✅ 已导出：家庭记账_' + todayStr() + '.xlsx');
 }
 window.exportModule = exportModule;
 
