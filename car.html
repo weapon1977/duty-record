@@ -345,6 +345,8 @@ const SUPABASE_URL = "https://zotnonwudryjspkkbugl.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_OfgEnMd4ouQ6gY3sXqJ2XQ_95tIEh0Y";
 const SESSION_KEY = 'car_maintenance_session';
 var supabase = null;
+var allData = {};
+var currentTab = 'dashboard';
 try {
   if (window.supabase && window.supabase.createClient) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
