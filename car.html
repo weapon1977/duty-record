@@ -352,6 +352,60 @@ var pageState = {
 };
 // Toll filter state (combined query: all conditions must match)
 var tollFilter = { startDate: '', endDate: '', entrance: '', exit: '', keyword: '' };
+// Generic date-range filter for maintenance/repair/fuel/insurance
+var moduleFilters = {
+  maintenance: { startDate: '', endDate: '' },
+  repair: { startDate: '', endDate: '' },
+  fuel: { startDate: '', endDate: '' },
+  insurance: { startDate: '', endDate: '' }
+};
+// Build a date-range filter bar for a module
+function buildDateFilterBar(module){
+  var f = moduleFilters[module] || { startDate:'', endDate:'' };
+  return '<div class="filter-bar">' +
+    '<div class="input-group"><label>起始日期</label><input type="date" id="'+module+'_from" value="'+escapeAttr(f.startDate)+'"></div>' +
+    '<div class="input-group"><label>结束日期</label><input type="date" id="'+module+'_to" value="'+escapeAttr(f.endDate)+'"></div>' +
+    '<button class="btn btn-primary" onclick="applyModuleFilter(\''+module+'\')">🔍 查询</button>' +
+    '<button class="btn" style="background:#f1f5f9;color:var(--text-2nd);border:none" onclick="clearModuleFilter(\''+module+'\')">重置</button>' +
+  '</div>';
+}
+// Filter data by date range
+function getFilteredByDate(module, dateField){
+  var data = allData[module] || [];
+  var f = moduleFilters[module] || { startDate:'', endDate:'' };
+  var filtered = data;
+  if(f.startDate) filtered = filtered.filter(function(r){ return r[dateField] >= f.startDate; });
+  if(f.endDate) filtered = filtered.filter(function(r){ return r[dateField] <= f.endDate; });
+  return filtered;
+}
+// Build summary cards (count + total cost)
+function buildSummaryCards(count, cost){
+  return '<div style="display:flex;gap:12px;margin-bottom:12px">' +
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;text-align:center">' +
+      '<div style="font-size:12px;color:var(--text-2nd)">查询结果</div>' +
+      '<div style="font-size:20px;font-weight:700;color:var(--primary)">'+count+' <span style="font-size:12px;color:var(--text-2nd)">条</span></div>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;text-align:center">' +
+      '<div style="font-size:12px;color:var(--text-2nd)">总费用</div>' +
+      '<div style="font-size:20px;font-weight:700;color:var(--danger)">'+formatMoney(cost)+'</div>' +
+    '</div>' +
+  '</div>';
+}
+function applyModuleFilter(module){
+  var f = moduleFilters[module];
+  if(!f) return;
+  f.startDate = document.getElementById(module+'_from') ? document.getElementById(module+'_from').value : '';
+  f.endDate = document.getElementById(module+'_to') ? document.getElementById(module+'_to').value : '';
+  pageState[module].page = 1;
+  renderModule(module);
+}
+window.applyModuleFilter = applyModuleFilter;
+function clearModuleFilter(module){
+  moduleFilters[module] = { startDate:'', endDate:'' };
+  pageState[module].page = 1;
+  renderModule(module);
+}
+window.clearModuleFilter = clearModuleFilter;
 var monthlyChart = null;
 var fuelChart = null;
 var pendingParts = [];
@@ -630,16 +684,20 @@ function renderMaintenance(){
   var el = document.getElementById('tab-maintenance');
   var data = allData.maintenance || [];
   var html = '<div class="section-title"><h2>🔧 保养记录</h2><button class="add-btn" onclick="openModal(\'maintenance\')">+ 添加</button></div>';
-  if(data.length === 0){
+  html += buildDateFilterBar('maintenance');
+  var filtered = getFilteredByDate('maintenance', 'service_date');
+  var totalCount = filtered.length;
+  var totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r.cost)||0); }, 0);
+  html += buildSummaryCards(totalCount, totalCost);
+  if(filtered.length === 0){
     el.innerHTML = html + emptyState('🔧');
     return;
   }
   var st = pageState.maintenance;
-  var total = data.length;
-  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  var totalPages = Math.max(1, Math.ceil(totalCount / st.size));
   if(st.page > totalPages) st.page = totalPages;
   var start = (st.page - 1) * st.size;
-  var pageData = data.slice(start, start + st.size);
+  var pageData = filtered.slice(start, start + st.size);
   
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>保养项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
@@ -647,7 +705,7 @@ function renderMaintenance(){
     html += '<tr><td>'+formatDate(r.service_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+items+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.cost)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:180px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'maintenance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'maintenance\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
-  html += renderPageNav('maintenance', st.page, totalPages, total);
+  html += renderPageNav('maintenance', st.page, totalPages, totalCount);
   el.innerHTML = html;
 }
 
@@ -656,16 +714,20 @@ function renderRepair(){
   var el = document.getElementById('tab-repair');
   var data = allData.repair || [];
   var html = '<div class="section-title"><h2>🔩 维修记录</h2><button class="add-btn" onclick="openModal(\'repair\')">+ 添加</button></div>';
-  if(data.length === 0){
+  html += buildDateFilterBar('repair');
+  var filtered = getFilteredByDate('repair', 'repair_date');
+  var totalCount = filtered.length;
+  var totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r.total_cost)||0); }, 0);
+  html += buildSummaryCards(totalCount, totalCost);
+  if(filtered.length === 0){
     el.innerHTML = html + emptyState('🔩');
     return;
   }
   var st = pageState.repair;
-  var total = data.length;
-  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  var totalPages = Math.max(1, Math.ceil(totalCount / st.size));
   if(st.page > totalPages) st.page = totalPages;
   var start = (st.page - 1) * st.size;
-  var pageData = data.slice(start, start + st.size);
+  var pageData = filtered.slice(start, start + st.size);
   
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>故障描述</th><th>维修项目</th><th>店铺</th><th>费用</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
@@ -676,7 +738,7 @@ function renderRepair(){
     html += '<tr><td>'+formatDate(r.repair_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.issue_description||'-')+'</td><td>'+escapeHtml(r.repair_items||'-')+(partsText?'<br><span style="font-size:12px;color:#64748b">零件: '+partsText+'</span>':'')+'</td><td>'+escapeHtml(r.shop||'-')+'</td><td class="cost">'+formatMoney(r.total_cost)+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:180px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'repair\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'repair\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
-  html += renderPageNav('repair', st.page, totalPages, total);
+  html += renderPageNav('repair', st.page, totalPages, totalCount);
   el.innerHTML = html;
 }
 
@@ -685,23 +747,27 @@ function renderFuel(){
   var el = document.getElementById('tab-fuel');
   var data = allData.fuel || [];
   var html = '<div class="section-title"><h2>⛽ 加油记录</h2><button class="add-btn" onclick="openModal(\'fuel\')">+ 添加</button></div>';
-  if(data.length === 0){
+  html += buildDateFilterBar('fuel');
+  var filtered = getFilteredByDate('fuel', 'fuel_date');
+  var totalCount = filtered.length;
+  var totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r.total_price)||0); }, 0);
+  html += buildSummaryCards(totalCount, totalCost);
+  if(filtered.length === 0){
     el.innerHTML = html + emptyState('⛽');
     return;
   }
   var st = pageState.fuel;
-  var total = data.length;
-  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  var totalPages = Math.max(1, Math.ceil(totalCount / st.size));
   if(st.page > totalPages) st.page = totalPages;
   var start = (st.page - 1) * st.size;
-  var pageData = data.slice(start, start + st.size);
+  var pageData = filtered.slice(start, start + st.size);
   
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>里程</th><th>油品</th><th>升数</th><th>单价</th><th>总价</th><th>加油站</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
     html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td><span class="badge badge-info">'+escapeHtml(r.fuel_type||'-')+'</span></td><td>'+(r.liters||0)+' L</td><td>'+(r.price_per_liter||0)+' 元/L</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+escapeHtml(r.station||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
-  html += renderPageNav('fuel', st.page, totalPages, total);
+  html += renderPageNav('fuel', st.page, totalPages, totalCount);
   el.innerHTML = html;
 }
 
@@ -710,16 +776,20 @@ function renderInsurance(){
   var el = document.getElementById('tab-insurance');
   var data = allData.insurance || [];
   var html = '<div class="section-title"><h2>📋 保险记录</h2><button class="add-btn" onclick="openModal(\'insurance\')">+ 添加</button></div>';
-  if(data.length === 0){
+  html += buildDateFilterBar('insurance');
+  var filtered = getFilteredByDate('insurance', 'start_date');
+  var totalCount = filtered.length;
+  var totalCost = filtered.reduce(function(sum, r){ return sum + (parseFloat(r.premium)||0); }, 0);
+  html += buildSummaryCards(totalCount, totalCost);
+  if(filtered.length === 0){
     el.innerHTML = html + emptyState('📋');
     return;
   }
   var st = pageState.insurance;
-  var total = data.length;
-  var totalPages = Math.max(1, Math.ceil(total / st.size));
+  var totalPages = Math.max(1, Math.ceil(totalCount / st.size));
   if(st.page > totalPages) st.page = totalPages;
   var start = (st.page - 1) * st.size;
-  var pageData = data.slice(start, start + st.size);
+  var pageData = filtered.slice(start, start + st.size);
   
   html += '<div class="table-wrap"><table><thead><tr><th>险种</th><th>保险公司</th><th>起止日期</th><th>保费</th><th>保单号</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
@@ -727,7 +797,7 @@ function renderInsurance(){
     html += '<tr><td>'+escapeHtml(r.insurance_type||'-')+'</td><td>'+escapeHtml(r.company||'-')+'</td><td style="font-size:12px">'+dateRange+'</td><td class="cost">'+formatMoney(r.premium)+'</td><td style="font-size:12px">'+escapeHtml(r.policy_number||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'insurance\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'insurance\','+r.id+')">🗑️</button></div></td></tr>';
   });
   html += '</tbody></table></div>';
-  html += renderPageNav('insurance', st.page, totalPages, total);
+  html += renderPageNav('insurance', st.page, totalPages, totalCount);
   el.innerHTML = html;
 }
 
