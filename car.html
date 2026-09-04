@@ -911,10 +911,10 @@ function renderFuel(){
   var totalCount = filtered.length;
   var totalExpense = filtered.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r.total_price)||0):0); }, 0);
   var totalRecharge = filtered.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
-  // 账户余额 = 历史总充值 - 历史总消费（不受日期筛选影响）
+  // 账户余额 = 加油卡总充值 - 加油卡总消费（只统计 payment_method='fuel_card' 的记录）
   var allFuelData = allData.fuel || [];
-  var totalAllRecharge = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
-  var totalAllExpense = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r.total_price)||0):0); }, 0);
+  var totalAllRecharge = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='recharge' && r.payment_method==='fuel_card' ?(parseFloat(r.total_price)||0):0); }, 0);
+  var totalAllExpense = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='expense' && r.payment_method==='fuel_card' ?(parseFloat(r.total_price)||0):0); }, 0);
   var balance = totalAllRecharge - totalAllExpense;
   var balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
@@ -1346,7 +1346,8 @@ function fuelForm(id){
   var payments = [
     {value:'wechat', label:'微信支付'},
     {value:'debit_card', label:'借记卡'},
-    {value:'credit_card', label:'信用卡'}
+    {value:'credit_card', label:'信用卡'},
+    {value:'fuel_card', label:'加油卡'}
   ];
   var html = 
     '<div class="form-row">' +
@@ -1744,7 +1745,7 @@ function formatDate(d){
 }
 function formatMoney(n){
   n = parseFloat(n) || 0;
-  return n > 0 ? n.toFixed(2) + ' 元' : '-';
+  return n !== 0 ? n.toFixed(2) + ' 元' : '-';
 }
 function todayStr(){
   var d = new Date();
