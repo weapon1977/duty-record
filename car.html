@@ -736,6 +736,11 @@ function renderMonthlyChart(){
   });
 
   var labels = Object.keys(months);
+  // 计算每月总金额用于标注
+  var monthTotals = labels.map(function(m){ 
+    return months[m].maintenance + months[m].repair + months[m].fuel + months[m].toll + months[m].family + months[m].other;
+  });
+
   var ctx = document.getElementById('monthlyChart').getContext('2d');
   if(monthlyChart) monthlyChart.destroy();
   monthlyChart = new Chart(ctx, {
@@ -753,8 +758,40 @@ function renderMonthlyChart(){
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position:'bottom', labels:{boxWidth:12,padding:8,font:{size:11} } } },
-      scales: { x:{stacked:true,grid:{display:false}}, y:{stacked:true,beginAtZero:true,ticks:{callback:function(v){return v>0?v:'';}}} }
+      plugins: { 
+        legend: { position:'bottom', labels:{boxWidth:12,padding:8,font:{size:11} } },
+        tooltip: {
+          callbacks: {
+            footer: function(tooltipItems) {
+              var total = 0;
+              tooltipItems.forEach(function(item) { total += item.parsed.y; });
+              return '当月总计: ' + total.toFixed(2) + ' 元';
+            }
+          }
+        }
+      },
+      scales: { x:{stacked:true,grid:{display:false}}, y:{stacked:true,beginAtZero:true,ticks:{callback:function(v){return v>0?v:'';}}} },
+      animation: {
+        onComplete: function() {
+          var chart = this;
+          var ctx = chart.ctx;
+          ctx.font = 'bold 11px sans-serif';
+          ctx.fillStyle = '#1e293b';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          
+          chart.data.labels.forEach(function(label, index) {
+            var total = monthTotals[index];
+            if(total > 0) {
+              var meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+              var bar = meta.data[index];
+              if(bar) {
+                ctx.fillText(total.toFixed(0), bar.x, bar.y - 4);
+              }
+            }
+          });
+        }
+      }
     }
   });
 }
