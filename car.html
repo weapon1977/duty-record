@@ -911,10 +911,17 @@ function renderFuel(){
   var totalCount = filtered.length;
   var totalExpense = filtered.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r.total_price)||0):0); }, 0);
   var totalRecharge = filtered.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
+  // 账户余额 = 历史总充值 - 历史总消费（不受日期筛选影响）
+  var allFuelData = allData.fuel || [];
+  var totalAllRecharge = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
+  var totalAllExpense = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r.total_price)||0):0); }, 0);
+  var balance = totalAllRecharge - totalAllExpense;
+  var balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
     '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">查询结果</div><div style="font-size:20px;font-weight:700;color:var(--primary)">'+totalCount+' <span style="font-size:12px;color:var(--text-2nd)">条</span></div></div>'+
     '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">加油消费</div><div style="font-size:20px;font-weight:700;color:var(--danger)">'+formatMoney(totalExpense)+'</div></div>'+
     '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">充值</div><div style="font-size:20px;font-weight:700;color:var(--success)">'+formatMoney(totalRecharge)+'</div></div>'+
+    '<div style="background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--shadow);flex:1;min-width:120px;text-align:center"><div style="font-size:12px;color:var(--text-2nd)">账户余额</div><div style="font-size:20px;font-weight:700;color:'+balanceColor+'">'+formatMoney(balance)+'</div></div>'+
   '</div>';
   if(filtered.length === 0){
     el.innerHTML = html + emptyState('⛽');
@@ -929,7 +936,7 @@ function renderFuel(){
   html += '<div class="table-wrap"><table><thead><tr><th>日期</th><th>类型</th><th>里程</th><th>油品</th><th>油量</th><th>单价</th><th>金额</th><th>支付方式</th><th>备注</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(r){
     var typeBadge = r.record_type==='recharge' ? '<span class="badge badge-success">充值</span>' : '<span class="badge badge-danger">加油</span>';
-    var pmMap = { fuel_card:'加油卡', credit_card:'信用卡', debit_card:'储蓄卡', wechat:'微信支付', alipay:'支付宝', cash:'现金' };
+    var pmMap = { wechat:'微信支付', debit_card:'借记卡', credit_card:'信用卡', fuel_card:'加油卡', alipay:'支付宝', cash:'现金' };
     var payment = pmMap[r.payment_method] || r.payment_method || '-';
     html += '<tr><td>'+formatDate(r.fuel_date)+'</td><td>'+typeBadge+'</td><td>'+(r.mileage?r.mileage+' km':'-')+'</td><td>'+escapeHtml(r.fuel_type||'-')+'</td><td>'+(r.liters?r.liters+' L':'-')+'</td><td>'+(r.price_per_liter?r.price_per_liter+' 元':'-')+'</td><td class="cost">'+formatMoney(r.total_price)+'</td><td>'+payment+'</td><td style="font-size:12px;color:#64748b;line-height:1.5;word-break:break-all;min-width:120px" title="'+escapeAttr(r.notes||'')+'">'+escapeHtml(r.notes||'-')+'</td><td><div class="row-actions"><button class="action-edit" onclick="openModal(\'fuel\','+r.id+')">✏️</button><button class="action-del" onclick="deleteRecord(\'fuel\','+r.id+')">🗑️</button></div></td></tr>';
   });
@@ -1337,12 +1344,9 @@ function fuelForm(id){
     {value:'recharge', label:'加油卡充值'}
   ];
   var payments = [
-    {value:'fuel_card', label:'加油卡'},
-    {value:'credit_card', label:'信用卡'},
-    {value:'debit_card', label:'储蓄卡'},
     {value:'wechat', label:'微信支付'},
-    {value:'alipay', label:'支付宝'},
-    {value:'cash', label:'现金'}
+    {value:'debit_card', label:'借记卡'},
+    {value:'credit_card', label:'信用卡'}
   ];
   var html = 
     '<div class="form-row">' +
@@ -1352,10 +1356,10 @@ function fuelForm(id){
     '<div class="input-group"><label>记录类型</label><select id="f_record_type" onchange="onFuelTypeChange()">' +
       recordTypes.map(function(t){ return '<option value="'+t.value+'"'+(r.record_type===t.value?' selected':'')+'>'+t.label+'</option>'; }).join('') +
     '</select></div>' +
+    '<div class="input-group"><label>支付方式</label><select id="f_payment">' +
+      payments.map(function(p){ return '<option value="'+p.value+'"'+(r.payment_method===p.value?' selected':'')+'>'+p.label+'</option>'; }).join('') +
+    '</select></div>' +
     '<div id="fuelExpenseFields"' + (r.record_type==='recharge'?' style="display:none"':'') + '>' +
-      '<div class="input-group"><label>支付方式</label><select id="f_payment">' +
-        payments.map(function(p){ return '<option value="'+p.value+'"'+(r.payment_method===p.value?' selected':'')+'>'+p.label+'</option>'; }).join('') +
-      '</select></div>' +
       '<div class="input-group"><label>油品型号</label><select id="f_type">' +
         types.map(function(t){ return '<option value="'+t+'"'+(r.fuel_type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
       '</select></div>' +
@@ -1553,7 +1557,7 @@ async function saveModalRecord(){
       data.total_price = parseFloat(val('f_total')) || 0;
       data.station = val('f_station');
       data.record_type = val('f_record_type') || 'expense';
-      data.payment_method = val('f_payment') || 'fuel_card';
+      data.payment_method = val('f_payment') || 'debit_card';
       data.notes = val('f_notes') || '';
     } else if(module === 'insurance'){
       data.insurance_type = val('i_type');
