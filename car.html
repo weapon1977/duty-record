@@ -911,10 +911,10 @@ function renderFuel(){
   var totalCount = filtered.length;
   var totalExpense = filtered.reduce(function(sum, r){ return sum + (r.record_type==='expense'?(parseFloat(r.total_price)||0):0); }, 0);
   var totalRecharge = filtered.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
-  // 账户余额 = 加油卡总充值 - 加油卡总消费（只统计 payment_method='fuel_card' 的记录）
+  // 账户余额 = 所有充值总额 - 加油卡支付的实际加油消费（只扣加油卡支付的部分）
   var allFuelData = allData.fuel || [];
-  var totalAllRecharge = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='recharge' && r.payment_method==='fuel_card' ?(parseFloat(r.total_price)||0):0); }, 0);
-  var totalAllExpense = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='expense' && r.payment_method==='fuel_card' ?(parseFloat(r.total_price)||0):0); }, 0);
+  var totalAllRecharge = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='recharge'?(parseFloat(r.total_price)||0):0); }, 0);
+  var totalAllExpense = allFuelData.reduce(function(sum, r){ return sum + (r.record_type==='expense' && r.payment_method==='fuel_card'?(parseFloat(r.total_price)||0):0); }, 0);
   var balance = totalAllRecharge - totalAllExpense;
   var balanceColor = balance >= 0 ? 'var(--success)' : 'var(--danger)';
   html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">'+
