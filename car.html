@@ -761,10 +761,14 @@ function renderMonthlyChart(){
       plugins: { 
         legend: { position:'bottom', labels:{boxWidth:12,padding:8,font:{size:11} } },
         tooltip: {
+          mode: 'index',
+          intersect: false,
           callbacks: {
             footer: function(tooltipItems) {
+              if(!tooltipItems.length) return '';
+              var idx = tooltipItems[0].dataIndex;
               var total = 0;
-              tooltipItems.forEach(function(item) { total += item.parsed.y; });
+              monthlyChart.data.datasets.forEach(function(ds){ total += ds.data[idx] || 0; });
               return '当月总计: ' + total.toFixed(2) + ' 元';
             }
           }
