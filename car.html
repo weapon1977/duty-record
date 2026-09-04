@@ -703,7 +703,10 @@ function renderMonthlyChart(){
   var now = new Date();
   for(var i=5; i>=0; i--){
     var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { maintenance:0, repair:0, fuel:0, toll:0, family:0, other:0 };
+    months[d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')] = { 
+      maintenance:0, repair:0, fuel:0, toll:0, family:0, other:0,
+      dining:0, shopping:0, communication:0, electricity:0, water:0, heating:0, property:0, social:0
+    };
   }
 
   // Car modules (fuel: only expense, not recharge)
@@ -723,7 +726,7 @@ function renderMonthlyChart(){
     });
   });
 
-  // Family expense modules (only expense, not recharge)
+  // Family expense modules (only expense, not recharge) — detail by category
   Object.keys(FAMILY_CATEGORIES).forEach(function(mod){
     if(!allData[mod]) return;
     allData[mod].forEach(function(r){
@@ -731,14 +734,16 @@ function renderMonthlyChart(){
       var ym = (r.expense_date || '').substring(0,7);
       if(!months[ym]) return;
       var cost = parseFloat(r.amount) || 0;
-      months[ym].family += cost;
+      if(months[ym][mod] !== undefined) months[ym][mod] += cost;
     });
   });
 
   var labels = Object.keys(months);
-  // 计算每月总金额用于标注
+  // 计算每月总金额用于标注（汇总所有明细字段）
   var monthTotals = labels.map(function(m){ 
-    return months[m].maintenance + months[m].repair + months[m].fuel + months[m].toll + months[m].family + months[m].other;
+    var mo = months[m];
+    return mo.maintenance + mo.repair + mo.fuel + mo.toll + mo.other +
+           mo.dining + mo.shopping + mo.communication + mo.electricity + mo.water + mo.heating + mo.property + mo.social;
   });
 
   var ctx = document.getElementById('monthlyChart').getContext('2d');
@@ -752,7 +757,14 @@ function renderMonthlyChart(){
         { label:'维修', data:labels.map(function(m){return months[m].repair;}), backgroundColor:'#f59e0b' },
         { label:'加油', data:labels.map(function(m){return months[m].fuel;}), backgroundColor:'#16a34a' },
         { label:'高速费', data:labels.map(function(m){return months[m].toll;}), backgroundColor:'#f59e0b' },
-        { label:'家庭支出', data:labels.map(function(m){return months[m].family;}), backgroundColor:'#8b5cf6' },
+        { label:'餐饮', data:labels.map(function(m){return months[m].dining;}), backgroundColor:'#ef4444' },
+        { label:'购物', data:labels.map(function(m){return months[m].shopping;}), backgroundColor:'#f97316' },
+        { label:'通讯', data:labels.map(function(m){return months[m].communication;}), backgroundColor:'#eab308' },
+        { label:'电费', data:labels.map(function(m){return months[m].electricity;}), backgroundColor:'#84cc16' },
+        { label:'水费', data:labels.map(function(m){return months[m].water;}), backgroundColor:'#06b6d4' },
+        { label:'取暖', data:labels.map(function(m){return months[m].heating;}), backgroundColor:'#3b82f6' },
+        { label:'物业', data:labels.map(function(m){return months[m].property;}), backgroundColor:'#6366f1' },
+        { label:'人情', data:labels.map(function(m){return months[m].social;}), backgroundColor:'#a855f7' },
         { label:'其他', data:labels.map(function(m){return months[m].other;}), backgroundColor:'#94a3b8' }
       ]
     },
@@ -764,11 +776,44 @@ function renderMonthlyChart(){
           mode: 'index',
           intersect: false,
           callbacks: {
+            label: function(context) {
+              var value = context.parsed.y;
+              if(value === 0 || value === null || value === undefined) return null;
+              return context.dataset.label + ': ' + value.toFixed(2) + ' 元';
+            },
+            afterBody: function(tooltipItems) {
+              if(!tooltipItems.length) return '';
+              var idx = tooltipItems[0].dataIndex;
+              var ym = labels[idx];
+              var mo = months[ym];
+              var lines = [];
+              // 家庭支出明细
+              var famCats = [
+                {key:'dining', label:'  餐饮'},
+                {key:'shopping', label:'  购物'},
+                {key:'communication', label:'  通讯'},
+                {key:'electricity', label:'  电费'},
+                {key:'water', label:'  水费'},
+                {key:'heating', label:'  取暖'},
+                {key:'property', label:'  物业'},
+                {key:'social', label:'  人情'}
+              ];
+              var hasFamily = false;
+              famCats.forEach(function(c){
+                if(mo[c.key] > 0){
+                  if(!hasFamily){ lines.push('家庭支出明细:'); hasFamily = true; }
+                  lines.push(c.label + ': ' + mo[c.key].toFixed(2) + ' 元');
+                }
+              });
+              return lines;
+            },
             footer: function(tooltipItems) {
               if(!tooltipItems.length) return '';
               var idx = tooltipItems[0].dataIndex;
-              var total = 0;
-              monthlyChart.data.datasets.forEach(function(ds){ total += ds.data[idx] || 0; });
+              var ym = labels[idx];
+              var mo = months[ym];
+              var total = mo.maintenance + mo.repair + mo.fuel + mo.toll + mo.other +
+                          mo.dining + mo.shopping + mo.communication + mo.electricity + mo.water + mo.heating + mo.property + mo.social;
               return '当月总计: ' + total.toFixed(2) + ' 元';
             }
           }
