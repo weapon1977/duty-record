@@ -781,32 +781,6 @@ function renderMonthlyChart(){
               if(value === 0 || value === null || value === undefined) return null;
               return context.dataset.label + ': ' + value.toFixed(2) + ' 元';
             },
-            afterBody: function(tooltipItems) {
-              if(!tooltipItems.length) return '';
-              var idx = tooltipItems[0].dataIndex;
-              var ym = labels[idx];
-              var mo = months[ym];
-              var lines = [];
-              // 家庭支出明细
-              var famCats = [
-                {key:'dining', label:'  餐饮'},
-                {key:'shopping', label:'  购物'},
-                {key:'communication', label:'  通讯'},
-                {key:'electricity', label:'  电费'},
-                {key:'water', label:'  水费'},
-                {key:'heating', label:'  取暖'},
-                {key:'property', label:'  物业'},
-                {key:'social', label:'  人情'}
-              ];
-              var hasFamily = false;
-              famCats.forEach(function(c){
-                if(mo[c.key] > 0){
-                  if(!hasFamily){ lines.push('家庭支出明细:'); hasFamily = true; }
-                  lines.push(c.label + ': ' + mo[c.key].toFixed(2) + ' 元');
-                }
-              });
-              return lines;
-            },
             footer: function(tooltipItems) {
               if(!tooltipItems.length) return '';
               var idx = tooltipItems[0].dataIndex;
