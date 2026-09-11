@@ -804,13 +804,20 @@ body{
   const SUPABASE_URL = "https://zotnonwudryjspkkbugl.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_OfgEnMd4ouQ6gY3sXqJ2XQ_95tIEh0Y";
   const { createClient } = window.supabase;
-  // 兼容 Edge 跟踪防护拦截 localStorage：提供自定义 storage，被拦截时回退到内存
+  // 兼容 Edge 跟踪防护：检测 localStorage 是否真可用，不可用时自动回退 Cookie
+  function testLS(){
+    try{var t='__t_'+Date.now();localStorage.setItem(t,'1');var v=localStorage.getItem(t);localStorage.removeItem(t);return v==='1';}catch(e){return false;}
+  }
+  var lsOk=testLS();
   function makeAuthStorage(){
     var mem={};
+    function setCookie(k,v){var d=new Date();d.setTime(d.getTime()+7*864e5);document.cookie=k+'='+encodeURIComponent(v||'')+';path=/;expires='+d.toUTCString()+';SameSite=Lax;Secure';}
+    function getCookie(k){return document.cookie.split(';').map(function(s){return s.trim()}).filter(function(s){return s.indexOf(k+'=')===0}).map(function(s){return decodeURIComponent(s.slice(k.length+1))})[0]||null;}
+    function delCookie(k){document.cookie=k+'=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT';}
     return{
-      getItem:function(k){try{return localStorage.getItem(k)}catch(e){return mem[k]||null}},
-      setItem:function(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}},
-      removeItem:function(k){try{localStorage.removeItem(k)}catch(e){delete mem[k]}}
+      getItem:function(k){if(lsOk)try{return localStorage.getItem(k)}catch(e){}var v=getCookie(k);return v!==null?v:mem[k]||null;},
+      setItem:function(k,v){if(lsOk)try{localStorage.setItem(k,v);return}catch(e){}setCookie(k,v);mem[k]=v;},
+      removeItem:function(k){if(lsOk)try{localStorage.removeItem(k)}catch(e){}delCookie(k);delete mem[k];}
     };
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
