@@ -6,13 +6,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="值班调休">
+<meta name="apple-mobile-web-app-title" content="工作智能管家">
 <meta name="theme-color" content="#007AFF">
 <meta name="format-detection" content="telephone=no">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%20viewBox='0%200%20180%20180'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0%25'%20stop-color='%23007AFF'/%3E%3Cstop%20offset='100%25'%20stop-color='%235AC8FA'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='180'%20height='180'%20rx='40'%20fill='url(%23g)'/%3E%3Ctext%20x='90'%20y='78'%20font-family='sans-serif'%20font-size='15'%20font-weight='600'%20text-anchor='middle'%20fill='rgba(255,255,255,0.85)'%3E%E5%80%BC%E7%8F%AD%E8%B0%83%E4%BC%91%3C/text%3E%3Ctext%20x='90'%20y='135'%20font-family='sans-serif'%20font-size='58'%20font-weight='700'%20text-anchor='middle'%20fill='white'%3E+1%3C/text%3E%3C/svg%3E">
-<title>值班调休记录</title>
+<title>工作智能管家</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 :root{
@@ -376,6 +376,11 @@ body{
 /* ===== Form Textarea (V5) ===== */
 .form-group textarea{width:100%;padding:10px 12px;border:0.5px solid var(--sep);border-radius:10px;background:var(--bg);color:var(--text);font-size:16px;outline:none;font-family:inherit;resize:vertical}
 .form-group textarea:focus{border-color:var(--blue)}
+/* ===== 文件预览 (V6) ===== */
+#previewBody img{max-width:100%;max-height:70vh;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+#previewBody pre{max-width:100%;max-height:70vh;overflow:auto;background:var(--bg);padding:12px;border-radius:8px;text-align:left;font-size:13px;line-height:1.6;border:0.5px solid var(--sep);white-space:pre-wrap;word-break:break-all}
+#previewBody iframe{width:100%;height:70vh;border:0.5px solid var(--sep);border-radius:8px}
+#previewBody .preview-placeholder{color:var(--gray);font-size:14px;text-align:center;padding:40px 16px}
 </style>
 </head>
 <body>
@@ -385,7 +390,7 @@ body{
     <div class="auth-card">
       <div class="auth-logo">📋</div>
       <h2 id="authTitle">登录</h2>
-      <div class="auth-subtitle">值班调休记录管理</div>
+      <div class="auth-subtitle">工作智能管家管理</div>
       <div class="auth-form">
         <div class="form-group">
           <label>邮箱</label>
@@ -426,7 +431,7 @@ body{
   <!-- ====== 主应用界面（登录后显示） ====== -->
   <div id="mainApp" style="display:none">
     <div class="header">
-      <h1>值班调休记录</h1>
+      <h1>工作智能管家</h1>
       <div class="user-bar">
         <span class="user-email" id="userEmail"></span>
         <div class="user-actions">
@@ -509,7 +514,11 @@ body{
         </div>
         <div class="record-list" id="logList"></div>
         <div class="pagination" id="logPagination"></div>
-        <button class="add-btn" onclick="showLogModal()">+ 添加工作日志</button>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+          <button class="add-btn" onclick="showLogModal()">+ 添加工作日志</button>
+          <label class="import-btn" style="display:inline-block;padding:10px 18px;border-radius:12px;background:#fff;border:1px solid #d1d5db;cursor:pointer;font-size:14px;color:#374151">导入 Excel<input type="file" accept=".xlsx,.xls" onchange="importLogs(event)" style="display:none"></label>
+          <button class="add-btn comp" onclick="exportLogs()">导出 Excel</button>
+        </div>
       </div>
     </div>
     <!-- ====== 资料库页 ====== -->
@@ -790,6 +799,20 @@ body{
     <div class="modal-footer">
       <button class="btn-cancel" onclick="hideCatManageModal()">关闭</button>
       <button class="btn-save" onclick="hideCatManageModal();showCatModal()">＋ 新建</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 资料库：预览文件 弹窗 ====== -->
+<div class="modal-overlay" id="previewOverlay" onclick="if(event.target===this)hidePreviewModal()">
+  <div class="modal-sheet" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <h2 id="previewTitle">文件预览</h2>
+      <button class="modal-close" onclick="hidePreviewModal()">✕</button>
+    </div>
+    <div id="previewBody" style="text-align:center;padding:8px;min-height:200px;display:flex;align-items:center;justify-content:center"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hidePreviewModal()">关闭</button>
+      <button class="btn-save" id="previewDownloadBtn">下载原文件</button>
     </div>
   </div>
 </div>
@@ -1704,7 +1727,7 @@ body{
     ws3['!cols']=[{wch:15},{wch:10}];
     XLSX.utils.book_append_sheet(wb,ws3,'汇总');
 
-    XLSX.writeFile(wb,'值班调休记录_'+todayStr()+'.xlsx');
+    XLSX.writeFile(wb,'工作智能管家_'+todayStr()+'.xlsx');
     toast('已导出xlsx');
   };
   window.importData=async function(ev){
@@ -1834,7 +1857,7 @@ body{
     ev.target.value='';
   };
   window.clearAllData=async function(){
-    if(!confirm('确认清空全部记录？将删除您的所有值班调休记录！'))return;
+    if(!confirm('确认清空全部值班调休记录？此操作不可恢复！'))return;
     if(currentUser){
       await supabase.from("duty_log").delete().eq("user_id",currentUser.id);
       await supabase.from("duty_config").delete().eq("user_id",currentUser.id);
@@ -2058,6 +2081,65 @@ body{
     }
   };
 
+  // ==================== 工作日志 导出/导入 (V6) ====================
+  window.exportLogs=function(){
+    var wb=XLSX.utils.book_new();
+    var headers=['序号','日期','时段','工作内容'];
+    var rows=logListCache.map(function(r){
+      return [r.seq_no||'', r.log_date||'', r.period||'', r.content||''];
+    });
+    var ws=XLSX.utils.aoa_to_sheet([headers].concat(rows));
+    ws['!cols']=[{wch:8},{wch:12},{wch:8},{wch:40}];
+    XLSX.utils.book_append_sheet(wb,ws,'工作日志');
+    XLSX.writeFile(wb,'工作日志_'+todayStr()+'.xlsx');
+    toast('已导出工作日志');
+  };
+
+  window.importLogs=async function(ev){
+    var f=ev.target.files[0];if(!f)return;
+    var name=(f.name||'').toLowerCase();
+    if(!name.endsWith('.xlsx')&&!name.endsWith('.xls')){toast('请选择 .xlsx 或 .xls 文件');return;}
+    var reader=new FileReader();
+    reader.onload=async function(e){
+      try{
+        var wb=XLSX.read(e.target.result,{type:'array'});
+        var ws=wb.Sheets['工作日志'];
+        if(!ws){toast('未找到「工作日志」工作表');return;}
+        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        if(!rows||rows.length<=1){toast('工作表为空或格式不正确');return;}
+        var imported=0,skipped=0;
+        showLoading(true);
+        for(var i=1;i<rows.length;i++){
+          var row=rows[i];
+          if(!row)continue;
+          var d=(row[1]||'').toString().trim();
+          var per=(row[2]||'').toString().trim();
+          var con=(row[3]||'').toString().trim();
+          if(!d||!per||!con){skipped++;continue;}
+          var seqRes=await supabase.rpc('next_work_log_seq',{p_user:currentUser.id});
+          if(seqRes.error){skipped++;continue;}
+          var ins=await supabase.from('work_logs').insert({
+            user_id:currentUser.id,
+            seq_no:seqRes.data,
+            log_date:d,
+            period:per,
+            content:con
+          });
+          if(ins.error){skipped++;continue;}
+          imported++;
+        }
+        await loadLogs();
+        toast('导入完成：'+imported+'条成功'+(skipped?'，'+skipped+'条跳过':''));
+      }catch(err){
+        toast('导入失败：'+err.message);
+      }finally{
+        showLoading(false);
+        ev.target.value='';
+      }
+    };
+    reader.readAsArrayBuffer(f);
+  };
+
   // ==================== 资料库模块 (V5) ====================
   var libLoaded=false;
   var categoriesCache=[];
@@ -2177,6 +2259,16 @@ body{
     return '📦';
   }
 
+  function isPreviewable(mime,name){
+    var ext=String(name||'').split('.').pop().toLowerCase();
+    var m=String(mime||'');
+    if(m.indexOf('image/')===0||['jpg','jpeg','png','gif','webp','svg','bmp'].indexOf(ext)>-1)return true;
+    if(m==='text/plain'||['txt','md','json','csv','xml','html','htm','log'].indexOf(ext)>-1)return true;
+    if(['xls','xlsx','csv','et'].indexOf(ext)>-1||m.indexOf('sheet')>-1||m.indexOf('excel')>-1)return true;
+    if(m==='application/pdf'||ext==='pdf')return true;
+    return false;
+  }
+
   function fmtSize(n){
     n=n||0;
     if(n>=1048576)return (n/1048576).toFixed(1)+' MB';
@@ -2203,13 +2295,14 @@ body{
         var meta=fmtSize(f.file_size)+' · '+escapeHtml(catName)+' · '+upDate;
         if(f.description)meta+=' · '+escapeHtml(f.description);
         html+='<div class="file-item">'
-          +'<div class="file-icon">'+fileIcon(f.file_name,f.mime_type)+'</div>'
-          +'<div class="file-main">'
+          +'<div class="file-icon" onclick="previewFile('+f.id+')" style="cursor:pointer">'+fileIcon(f.file_name,f.mime_type)+'</div>'
+          +'<div class="file-main" onclick="previewFile('+f.id+')" style="cursor:pointer">'
           +'<div class="file-name">'+escapeHtml(f.file_name)+'</div>'
           +'<div class="file-meta">'+meta+'</div>'
           +'</div>'
           +'<div class="file-actions">'
           +'<button class="log-btn" onclick="downloadFile('+f.id+')">下载</button>'
+          +(isPreviewable(f.mime_type,f.file_name)?'<button class="log-btn" onclick="previewFile('+f.id+')">预览</button>':'')
           +'<button class="log-btn" onclick="showFileModal('+f.id+')">编辑</button>'
           +'<button class="log-btn danger" onclick="delFile('+f.id+')">删除</button>'
           +'</div>'
@@ -2330,6 +2423,59 @@ body{
     }finally{
       showLoading(false);
     }
+  };
+
+  window.previewFile=async function(id){
+    var f=null;
+    for(var i=0;i<libFilesCache.length;i++){
+      if(libFilesCache[i].id===id){f=libFilesCache[i];break;}
+    }
+    if(!f)return;
+    if(!isPreviewable(f.mime_type,f.file_name)){toast('该文件类型暂不支持预览');return;}
+    showLoading(true);
+    try{
+      var res=await supabase.storage.from('user-files').createSignedUrl(f.storage_path,3600);
+      if(res.error){toast('获取预览链接失败: '+(res.error.message||''));return;}
+      var url=res.data.signedUrl;
+      var ext=String(f.file_name||'').split('.').pop().toLowerCase();
+      var mime=String(f.mime_type||'');
+      var body=document.getElementById('previewBody');
+      document.getElementById('previewTitle').textContent=f.file_name;
+      document.getElementById('previewDownloadBtn').onclick=function(){window.open(url,'_blank');};
+      body.innerHTML='';
+      if(mime.indexOf('image/')===0||['jpg','jpeg','png','gif','webp','svg','bmp'].indexOf(ext)>-1){
+        body.innerHTML='<img src="'+url+'" alt="'+escapeHtml(f.file_name)+'" style="max-width:100%;max-height:70vh">';
+      }else if(mime==='text/plain'||['txt','md','json','csv','xml','html','htm','log'].indexOf(ext)>-1){
+        var txtRes=await fetch(url);
+        var text=await txtRes.text();
+        body.innerHTML='<pre style="max-height:70vh;overflow:auto;text-align:left;font-size:13px;line-height:1.6">'+escapeHtml(text)+'</pre>';
+      }else if(mime==='application/pdf'||ext==='pdf'){
+        body.innerHTML='<iframe src="'+url+'" style="width:100%;height:70vh;border:0"></iframe>';
+      }else if(['xls','xlsx','csv','et'].indexOf(ext)>-1||mime.indexOf('sheet')>-1||mime.indexOf('excel')>-1){
+        var binRes=await fetch(url);
+        var buf=await binRes.arrayBuffer();
+        var wb=XLSX.read(buf,{type:'array'});
+        var html='<div style="text-align:left;font-size:13px;max-height:70vh;overflow:auto">';
+        for(var s=0;s<wb.SheetNames.length;s++){
+          var sn=wb.SheetNames[s];
+          html+='<h3 style="margin:8px 0 4px;font-size:14px;color:var(--blue)">'+escapeHtml(sn)+'</h3>';
+          var shtml=XLSX.utils.sheet_to_html(wb.Sheets[sn],{editable:false});
+          html+=shtml;
+        }
+        html+='</div>';
+        body.innerHTML=html;
+      }
+      document.getElementById('previewOverlay').classList.add('show');
+    }catch(e){
+      toast('预览加载失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.hidePreviewModal=function(){
+    document.getElementById('previewOverlay').classList.remove('show');
+    document.getElementById('previewBody').innerHTML='';
   };
 
   window.downloadFile=async function(id){
