@@ -310,6 +310,72 @@ body{
 .profile-info .label{color:var(--label);font-size:13px}
 .divider{height:0.5px;background:var(--sep);margin:16px 0}
 .hint-text{font-size:12px;color:var(--gray);line-height:1.5;margin-bottom:8px}
+/* ===== Tab Navigation (V5) ===== */
+.tab-nav{display:flex;gap:4px;margin-top:10px;background:rgba(142,142,147,0.10);border-radius:10px;padding:3px}
+.tab-item{flex:1;text-align:center;padding:7px 2px;font-size:13px;color:var(--label);border-radius:8px;cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap}
+.tab-item.active{background:var(--card);color:var(--blue);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.tab-item:active{opacity:0.7}
+/* ===== Filter Card (V5) ===== */
+.filter-card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:10px}
+.filter-row{display:flex;gap:8px;margin-bottom:8px}
+.filter-row:last-of-type{margin-bottom:0}
+.filter-row input,.filter-row select{
+  flex:1;min-width:0;padding:9px 10px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--bg);color:var(--text);font-size:14px;outline:none;
+}
+.filter-row input:focus,.filter-row select:focus{border-color:var(--blue)}
+.filter-actions{display:flex;gap:8px;margin-top:8px}
+.filter-actions button{
+  flex:1;padding:9px;border:0.5px solid var(--sep);border-radius:10px;
+  background:var(--card);color:var(--blue);font-size:14px;cursor:pointer;
+}
+.filter-actions button:active{opacity:0.6}
+/* ===== Pagination (V5) ===== */
+.pagination{display:flex;justify-content:center;padding:10px 0 4px}
+.pager-inner{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:center}
+.pager-btn{min-width:30px;height:30px;padding:0 9px;border:0.5px solid var(--sep);border-radius:8px;background:var(--card);color:var(--blue);font-size:15px;cursor:pointer}
+.pager-btn:disabled{opacity:0.35;color:var(--gray)}
+.pager-num{min-width:30px;height:30px;padding:0 4px;border:0.5px solid transparent;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:var(--text);cursor:pointer}
+.pager-num.active{background:var(--blue);color:#fff;font-weight:600}
+.pager-dots{color:var(--gray);font-size:13px;padding:0 2px}
+.pager-info{font-size:12px;color:var(--label);margin-right:2px}
+/* ===== Log Item (V5) ===== */
+.log-item{display:flex;align-items:flex-start;padding:12px 16px;border-bottom:0.5px solid var(--sep);gap:10px}
+.log-item:last-child{border-bottom:none}
+.log-item:active{background:var(--bg)}
+.log-seq{flex-shrink:0;font-size:12px;font-weight:600;color:var(--blue);background:rgba(0,122,255,0.10);padding:2px 7px;border-radius:6px;margin-top:2px}
+.log-main{flex:1;min-width:0}
+.log-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.log-date{font-size:14px;font-weight:600}
+.log-period-badge{font-size:11px;padding:1px 6px;border-radius:5px}
+.log-period-badge.am{background:rgba(255,149,0,0.12);color:var(--orange)}
+.log-period-badge.pm{background:rgba(52,199,89,0.12);color:var(--green)}
+.log-content{font-size:14px;color:var(--gray);margin-top:4px;line-height:1.5;word-break:break-all;white-space:pre-wrap}
+.log-actions{display:flex;gap:6px;flex-shrink:0}
+.log-btn{padding:5px 10px;border:0.5px solid var(--sep);border-radius:8px;background:var(--card);color:var(--blue);font-size:12px;cursor:pointer}
+.log-btn.danger{color:var(--red)}
+.log-btn:active{opacity:0.6}
+/* ===== Category (V5) ===== */
+.cat-tools{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.cat-tools-label{font-size:13px;color:var(--label)}
+.cat-bar{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-chip{flex-shrink:0;padding:6px 14px;border-radius:16px;background:var(--card);border:0.5px solid var(--sep);font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap}
+.cat-chip.active{border-color:var(--blue);color:var(--blue);background:rgba(0,122,255,0.08);font-weight:600}
+.cat-chip.add-cat{border-style:dashed;color:var(--blue)}
+.cat-chip:active{opacity:0.6}
+/* ===== File Item (V5) ===== */
+.file-item{display:flex;align-items:flex-start;padding:12px 16px;border-bottom:0.5px solid var(--sep);gap:10px}
+.file-item:last-child{border-bottom:none}
+.file-item:active{background:var(--bg)}
+.file-icon{flex-shrink:0;width:38px;height:38px;border-radius:9px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px}
+.file-main{flex:1;min-width:0}
+.file-name{font-size:14px;font-weight:500;word-break:break-all;line-height:1.4}
+.file-meta{font-size:12px;color:var(--gray);margin-top:3px;word-break:break-all;line-height:1.5}
+.file-actions{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+/* ===== Form Textarea (V5) ===== */
+.form-group textarea{width:100%;padding:10px 12px;border:0.5px solid var(--sep);border-radius:10px;background:var(--bg);color:var(--text);font-size:16px;outline:none;font-family:inherit;resize:vertical}
+.form-group textarea:focus{border-color:var(--blue)}
 </style>
 </head>
 <body>
@@ -369,7 +435,13 @@ body{
           <button class="logout-btn" onclick="signOut()">退出登录</button>
         </div>
       </div>
+      <div class="tab-nav">
+        <div class="tab-item active" data-page="duty" onclick="switchPage('duty')">📋 值班调休</div>
+        <div class="tab-item" data-page="log" onclick="switchPage('log')">📝 工作日志</div>
+        <div class="tab-item" data-page="lib" onclick="switchPage('lib')">📁 资料库</div>
+      </div>
     </div>
+    <div id="pageDuty">
     <div class="balance-card" id="balanceCard">
       <div class="balance-label">剩余调休天数</div>
       <div class="balance-number" id="balanceNumber">0<span class="unit"> 天</span></div>
@@ -407,6 +479,65 @@ body{
     <div class="hint" id="hintBox">
       <p>💡 在 Safari 中点击底部「分享」按钮，选择「添加到主屏幕」，即可像 App 一样全屏使用，支持离线。</p>
       <button onclick="document.getElementById('hintBox').style.display='none';localStorage.setItem('hintDismissed','1')">知道了</button>
+    </div>
+    </div><!-- /pageDuty -->
+    <!-- ====== 工作日志页 ====== -->
+    <div id="pageLog" style="display:none">
+      <div class="section" style="margin-top:16px">
+        <div class="section-header">
+          <span class="section-title">📝 工作日志</span>
+          <span class="section-count" id="logCount"></span>
+        </div>
+        <div class="filter-card">
+          <div class="filter-row">
+            <input type="text" id="logKeyword" placeholder="关键字（匹配内容）" maxlength="50">
+            <select id="logPeriod">
+              <option value="">全部时段</option>
+              <option value="上午">上午</option>
+              <option value="下午">下午</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <input type="date" id="logDateFrom" aria-label="开始日期">
+            <span style="align-self:center;color:var(--label);font-size:13px">至</span>
+            <input type="date" id="logDateTo" aria-label="结束日期">
+          </div>
+          <div class="filter-actions">
+            <button onclick="queryLogs()">查询</button>
+            <button onclick="resetLogFilter()">重置</button>
+          </div>
+        </div>
+        <div class="record-list" id="logList"></div>
+        <div class="pagination" id="logPagination"></div>
+        <button class="add-btn" onclick="showLogModal()">+ 添加工作日志</button>
+      </div>
+    </div>
+    <!-- ====== 资料库页 ====== -->
+    <div id="pageLib" style="display:none">
+      <div class="section" style="margin-top:16px">
+        <div class="section-header">
+          <span class="section-title">📁 资料库</span>
+          <span class="section-count" id="libCount"></span>
+        </div>
+        <div class="cat-tools">
+          <span class="cat-tools-label">类别：点击筛选</span>
+          <button class="log-btn" onclick="showCatManageModal()">🛠 管理类别</button>
+        </div>
+        <div class="cat-bar" id="catBar"></div>
+        <div class="filter-card">
+          <div class="filter-row">
+            <input type="text" id="libKeyword" placeholder="关键字（文件名 / 备注）" maxlength="50">
+            <select id="libCategorySel"><option value="">全部分类</option></select>
+          </div>
+          <div class="filter-actions">
+            <button onclick="queryLib()">查询</button>
+            <button onclick="resetLibFilter()">重置</button>
+          </div>
+        </div>
+        <div class="record-list" id="libList"></div>
+        <div class="pagination" id="libPagination"></div>
+        <button class="add-btn" onclick="showUploadModal()">⬆ 上传文件</button>
+      </div>
     </div>
   </div>
 </div>
@@ -550,6 +681,115 @@ body{
     <div class="modal-footer">
       <button class="btn-cancel" onclick="hideResetModal()">取消</button>
       <button class="btn-save" onclick="setNewPassword()">确认</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 工作日志 弹窗 ====== -->
+<div class="modal-overlay" id="logOverlay" onclick="if(event.target===this)hideLogModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2 id="logModalTitle">添加工作日志</h2>
+      <button class="modal-close" onclick="hideLogModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>日期</label>
+      <input type="date" id="logDate">
+    </div>
+    <div class="form-group">
+      <label>时段</label>
+      <select id="logPeriodSel">
+        <option value="上午">上午</option>
+        <option value="下午">下午</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>工作内容</label>
+      <textarea id="logContent" rows="4" maxlength="500" placeholder="记录这段时间做了什么..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideLogModal()">取消</button>
+      <button class="btn-save" onclick="saveLog()">保存</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 资料库：上传文件 弹窗 ====== -->
+<div class="modal-overlay" id="uploadOverlay" onclick="if(event.target===this)hideUploadModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2>上传文件</h2>
+      <button class="modal-close" onclick="hideUploadModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>选择类别</label>
+      <select id="uploadCategory"></select>
+    </div>
+    <div class="form-group">
+      <label>选择文件（可多选，单个不超过 100MB）</label>
+      <input type="file" id="uploadFiles" multiple>
+    </div>
+    <div class="form-group">
+      <label>备注（可选，支持关键字搜索）</label>
+      <input type="text" id="uploadDesc" maxlength="100" placeholder="如：2026年Q3报销单、合同扫描件">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideUploadModal()">取消</button>
+      <button class="btn-save" onclick="doUpload()">上传</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 资料库：编辑文件 弹窗 ====== -->
+<div class="modal-overlay" id="fileOverlay" onclick="if(event.target===this)hideFileModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2>文件信息</h2>
+      <button class="modal-close" onclick="hideFileModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>文件名</label>
+      <div class="profile-info" id="fileEditName" style="margin-bottom:0"></div>
+    </div>
+    <div class="form-group">
+      <label>所属类别</label>
+      <select id="fileEditCat"></select>
+    </div>
+    <div class="form-group">
+      <label>备注</label>
+      <input type="text" id="fileEditDesc" maxlength="100" placeholder="备注（支持关键字搜索）">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideFileModal()">取消</button>
+      <button class="btn-save" onclick="saveFileEdit()">保存</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 资料库：新建类别 弹窗 ====== -->
+<div class="modal-overlay" id="catOverlay" onclick="if(event.target===this)hideCatModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <h2>新建类别</h2>
+      <button class="modal-close" onclick="hideCatModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>类别名称</label>
+      <input type="text" id="catNameInput" maxlength="20" placeholder="如：发票、合同、学习资料">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideCatModal()">取消</button>
+      <button class="btn-save" onclick="saveCat()">创建</button>
+    </div>
+  </div>
+</div>
+<!-- ====== 资料库：管理类别 弹窗 ====== -->
+<div class="modal-overlay" id="catManageOverlay" onclick="if(event.target===this)hideCatManageModal()">
+  <div class="modal-sheet" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-header">
+      <h2>管理类别</h2>
+      <button class="modal-close" onclick="hideCatManageModal()">✕</button>
+    </div>
+    <div id="catManageList"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="hideCatManageModal()">关闭</button>
+      <button class="btn-save" onclick="hideCatManageModal();showCatModal()">＋ 新建</button>
     </div>
   </div>
 </div>
@@ -1586,6 +1826,627 @@ body{
     save();render();toast('已清空');
   };
 
+  // ==================== 工作日志模块 (V5) ====================
+  var logLoaded=false;
+  var logListCache=[];
+  var logPage=1,logPageSize=15;
+  var logFilter={keyword:'',period:'',from:'',to:''};
+  var logModalMode='add',logEditId=null;
+
+  function jsStr(s){
+    return JSON.stringify(String(s)).replace(/[&<>"']/g,function(ch){
+      var map={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+      return map[ch];
+    });
+  }
+
+  window.switchPage=function(p){
+    document.getElementById('pageDuty').style.display=(p==='duty')?'':'none';
+    document.getElementById('pageLog').style.display=(p==='log')?'':'none';
+    document.getElementById('pageLib').style.display=(p==='lib')?'':'none';
+    var tabs=document.querySelectorAll('.tab-item');
+    for(var i=0;i<tabs.length;i++){tabs[i].classList.toggle('active',tabs[i].getAttribute('data-page')===p);}
+    if(p==='log')initLog();
+    if(p==='lib')initLib();
+  };
+
+  function initLog(){
+    if(logLoaded||!currentUser)return;
+    logLoaded=true;
+    loadLogs();
+  }
+
+  async function loadLogs(){
+    if(!currentUser)return;
+    showLoading(true);
+    try{
+      var res=await supabase.from('work_logs').select('*')
+        .eq('user_id',currentUser.id)
+        .order('log_date',{ascending:false}).order('seq_no',{ascending:false});
+      if(res.error){toast('加载工作日志失败');return;}
+      logListCache=res.data||[];
+      var cEl=document.getElementById('logCount');
+      if(cEl)cEl.textContent=logListCache.length+' 条';
+      logPage=1;
+      renderLogs();
+    }catch(e){
+      toast('加载工作日志失败');
+    }finally{
+      showLoading(false);
+    }
+  }
+
+  function filteredLogs(){
+    var k=(logFilter.keyword||'').trim().toLowerCase();
+    var from=logFilter.from||'',to=logFilter.to||'',per=logFilter.period||'';
+    return logListCache.filter(function(r){
+      if(k&&(r.content||'').toLowerCase().indexOf(k)<0)return false;
+      if(per&&r.period!==per)return false;
+      if(from&&r.log_date<from)return false;
+      if(to&&r.log_date>to)return false;
+      return true;
+    });
+  }
+
+  function pagerHtml(page,total,fn){
+    if(total<=1)return '';
+    var html='<div class="pager-inner">';
+    html+='<button class="pager-btn" '+(page>1?'onclick="'+fn+'('+(page-1)+')"':'disabled')+'>‹</button>';
+    html+='<span class="pager-info">'+page+' / '+total+' 页</span>';
+    var seqs=[];
+    var s=Math.max(1,page-2),e=Math.min(total,page+2);
+    if(s>1)seqs.push(1);
+    if(s>2)seqs.push('...');
+    for(var i=s;i<=e;i++)seqs.push(i);
+    if(e<total-1)seqs.push('...');
+    if(e<total)seqs.push(total);
+    for(var j=0;j<seqs.length;j++){
+      var p=seqs[j];
+      if(p==='...'){html+='<span class="pager-dots">…</span>';}
+      else if(p===page){html+='<span class="pager-num active">'+p+'</span>';}
+      else{html+='<span class="pager-num" onclick="'+fn+'('+p+')">'+p+'</span>';}
+    }
+    html+='<button class="pager-btn" '+(page<total?'onclick="'+fn+'('+(page+1)+')"':'disabled')+'>›</button>';
+    html+='</div>';
+    return html;
+  }
+
+  function renderLogs(){
+    var arr=filteredLogs();
+    var totalPages=Math.max(1,Math.ceil(arr.length/logPageSize));
+    if(logPage>totalPages)logPage=totalPages;
+    var start=(logPage-1)*logPageSize;
+    var pageItems=arr.slice(start,start+logPageSize);
+    var el=document.getElementById('logList');
+    if(arr.length===0){
+      el.innerHTML='<div class="empty-state">'+(logListCache.length===0?'暂无工作日志':'没有符合条件的记录')+'</div>';
+    }else{
+      var html='';
+      for(var i=0;i<pageItems.length;i++){
+        var r=pageItems[i];
+        html+='<div class="log-item">'
+          +'<div class="log-seq">#'+r.seq_no+'</div>'
+          +'<div class="log-main">'
+          +'<div class="log-title"><span class="log-date">'+fmtDate(r.log_date)+'</span>'
+          +'<span class="log-period-badge '+(r.period==='上午'?'am':'pm')+'">'+escapeHtml(r.period)+'</span></div>'
+          +'<div class="log-content">'+escapeHtml(r.content||'')+'</div>'
+          +'</div>'
+          +'<div class="log-actions">'
+          +'<button class="log-btn" onclick="showLogModal('+r.id+')">编辑</button>'
+          +'<button class="log-btn danger" onclick="delLog('+r.id+')">删除</button>'
+          +'</div>'
+          +'</div>';
+      }
+      el.innerHTML=html;
+    }
+    document.getElementById('logPagination').innerHTML=pagerHtml(logPage,totalPages,'goLogPage');
+  }
+
+  window.goLogPage=function(p){logPage=p;renderLogs();};
+
+  window.queryLogs=function(){
+    logFilter.keyword=document.getElementById('logKeyword').value;
+    logFilter.period=document.getElementById('logPeriod').value;
+    logFilter.from=document.getElementById('logDateFrom').value;
+    logFilter.to=document.getElementById('logDateTo').value;
+    logPage=1;
+    renderLogs();
+  };
+
+  window.resetLogFilter=function(){
+    document.getElementById('logKeyword').value='';
+    document.getElementById('logPeriod').value='';
+    document.getElementById('logDateFrom').value='';
+    document.getElementById('logDateTo').value='';
+    logFilter={keyword:'',period:'',from:'',to:''};
+    logPage=1;
+    renderLogs();
+  };
+
+  window.showLogModal=function(id){
+    logModalMode=id?'edit':'add';
+    logEditId=id||null;
+    document.getElementById('logModalTitle').textContent=logModalMode==='add'?'添加工作日志':'编辑工作日志';
+    document.getElementById('logDate').value=todayStr();
+    document.getElementById('logPeriodSel').value='上午';
+    document.getElementById('logContent').value='';
+    if(id){
+      var r=null;
+      for(var i=0;i<logListCache.length;i++){
+        if(logListCache[i].id===id){r=logListCache[i];break;}
+      }
+      if(r){
+        document.getElementById('logDate').value=r.log_date;
+        document.getElementById('logPeriodSel').value=r.period;
+        document.getElementById('logContent').value=r.content||'';
+      }
+    }
+    document.getElementById('logOverlay').classList.add('show');
+  };
+
+  window.hideLogModal=function(){
+    document.getElementById('logOverlay').classList.remove('show');
+  };
+
+  window.saveLog=async function(){
+    var d=document.getElementById('logDate').value;
+    var per=document.getElementById('logPeriodSel').value;
+    var con=document.getElementById('logContent').value.trim();
+    if(!d){toast('请选择日期');return;}
+    if(!con){toast('请输入工作内容');return;}
+    if(!currentUser)return;
+    showLoading(true);
+    try{
+      if(logModalMode==='add'){
+        var seqRes=await supabase.rpc('next_work_log_seq',{p_user:currentUser.id});
+        if(seqRes.error){toast('获取序号失败: '+(seqRes.error.message||''));return;}
+        var ins=await supabase.from('work_logs').insert({
+          user_id:currentUser.id,seq_no:seqRes.data,log_date:d,period:per,content:con
+        });
+        if(ins.error){toast('保存失败: '+(ins.error.message||''));return;}
+        toast('已添加 #'+seqRes.data);
+      }else{
+        var upd=await supabase.from('work_logs').update({log_date:d,period:per,content:con})
+          .eq('id',logEditId).eq('user_id',currentUser.id);
+        if(upd.error){toast('更新失败: '+(upd.error.message||''));return;}
+        toast('已更新');
+      }
+      hideLogModal();
+      await loadLogs();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.delLog=async function(id){
+    var r=null;
+    for(var i=0;i<logListCache.length;i++){
+      if(logListCache[i].id===id){r=logListCache[i];break;}
+    }
+    if(!r)return;
+    if(!confirm('确认删除这条工作日志？(#'+r.seq_no+' '+r.log_date+' '+r.period+')'))return;
+    showLoading(true);
+    try{
+      var del=await supabase.from('work_logs').delete().eq('id',id).eq('user_id',currentUser.id);
+      if(del.error){toast('删除失败: '+(del.error.message||''));return;}
+      toast('已删除');
+      await loadLogs();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  // ==================== 资料库模块 (V5) ====================
+  var libLoaded=false;
+  var categoriesCache=[];
+  var libFilesCache=[];
+  var libPage=1,libPageSize=15;
+  var libFilter={keyword:'',category:''};
+  var fileEditId=null;
+
+  function initLib(){
+    if(libLoaded||!currentUser)return;
+    libLoaded=true;
+    loadLibData();
+  }
+
+  async function loadLibData(){
+    await Promise.all([loadCategories(),loadLibFiles()]);
+  }
+
+  async function loadCategories(){
+    if(!currentUser)return;
+    try{
+      var res=await supabase.from('doc_categories').select('*')
+        .eq('user_id',currentUser.id).order('created_at',{ascending:true});
+      if(res.error)throw res.error;
+      categoriesCache=res.data||[];
+    }catch(e){
+      toast('加载类别失败');
+      return;
+    }
+    renderCatBar();
+    var sel=document.getElementById('libCategorySel');
+    var cur=sel.value;
+    sel.innerHTML='<option value="">全部分类</option>';
+    for(var i=0;i<categoriesCache.length;i++){
+      sel.innerHTML+='<option value="'+categoriesCache[i].id+'">'+escapeHtml(categoriesCache[i].name)+'</option>';
+    }
+    if(cur)sel.value=cur;
+    var uSel=document.getElementById('uploadCategory');
+    var uCur=uSel.value;
+    uSel.innerHTML='<option value="">未分类</option>';
+    for(var j=0;j<categoriesCache.length;j++){
+      uSel.innerHTML+='<option value="'+categoriesCache[j].id+'">'+escapeHtml(categoriesCache[j].name)+'</option>';
+    }
+    if(uCur)uSel.value=uCur;
+    var fSel=document.getElementById('fileEditCat');
+    var fCur=fSel.value;
+    fSel.innerHTML='<option value="">未分类</option>';
+    for(var k=0;k<categoriesCache.length;k++){
+      fSel.innerHTML+='<option value="'+categoriesCache[k].id+'">'+escapeHtml(categoriesCache[k].name)+'</option>';
+    }
+    if(fCur)fSel.value=fCur;
+  }
+
+  function renderCatBar(){
+    var el=document.getElementById('catBar');
+    var html='<div class="cat-chip'+(libFilter.category===''?' active':'')+'" onclick="setLibCategory(\'\')">全部</div>';
+    for(var i=0;i<categoriesCache.length;i++){
+      var c=categoriesCache[i];
+      html+='<div class="cat-chip'+(String(libFilter.category)===String(c.id)?' active':'')+'" onclick="setLibCategory(\''+c.id+'\')">'+escapeHtml(c.name)+'</div>';
+    }
+    html+='<div class="cat-chip add-cat" onclick="showCatModal()">＋ 新建类别</div>';
+    el.innerHTML=html;
+  }
+
+  window.setLibCategory=function(id){
+    libFilter.category=id||'';
+    libPage=1;
+    document.getElementById('libCategorySel').value=id||'';
+    renderCatBar();
+    renderLibFiles();
+  };
+
+  async function loadLibFiles(){
+    if(!currentUser)return;
+    showLoading(true);
+    try{
+      var res=await supabase.from('library_files').select('*,doc_categories(name)')
+        .eq('user_id',currentUser.id).order('created_at',{ascending:false});
+      if(res.error)throw res.error;
+      libFilesCache=res.data||[];
+      var cEl=document.getElementById('libCount');
+      if(cEl)cEl.textContent=libFilesCache.length+' 个文件';
+      libPage=1;
+      renderLibFiles();
+    }catch(e){
+      toast('加载文件失败');
+    }finally{
+      showLoading(false);
+    }
+  }
+
+  function filteredLibFiles(){
+    var k=(libFilter.keyword||'').trim().toLowerCase();
+    var cat=libFilter.category||'';
+    return libFilesCache.filter(function(f){
+      if(k){
+        var name=(f.file_name||'').toLowerCase();
+        var desc=(f.description||'').toLowerCase();
+        if(name.indexOf(k)<0&&desc.indexOf(k)<0)return false;
+      }
+      if(cat&&String(f.category_id)!==String(cat))return false;
+      return true;
+    });
+  }
+
+  function fileIcon(name,mime){
+    var ext=String(name||'').split('.').pop().toLowerCase();
+    var m=String(mime||'');
+    if(m.indexOf('image/')===0)return '🖼';
+    if(m.indexOf('video/')===0)return '🎬';
+    if(m.indexOf('audio/')===0)return '🔊';
+    if(ext==='pdf'||m==='application/pdf')return '📕';
+    if(['doc','docx','txt','md','rtf','wps'].indexOf(ext)>-1||m.indexOf('word')>-1)return '📄';
+    if(['xls','xlsx','csv','et'].indexOf(ext)>-1||m.indexOf('sheet')>-1||m.indexOf('excel')>-1)return '📊';
+    if(['ppt','pptx','dps'].indexOf(ext)>-1||m.indexOf('presentation')>-1)return '📽';
+    if(['zip','rar','7z','tar','gz'].indexOf(ext)>-1)return '🗜';
+    return '📦';
+  }
+
+  function fmtSize(n){
+    n=n||0;
+    if(n>=1048576)return (n/1048576).toFixed(1)+' MB';
+    if(n>=1024)return (n/1024).toFixed(0)+' KB';
+    return n+' B';
+  }
+
+  function renderLibFiles(){
+    var arr=filteredLibFiles();
+    var totalPages=Math.max(1,Math.ceil(arr.length/libPageSize));
+    if(libPage>totalPages)libPage=totalPages;
+    var start=(libPage-1)*libPageSize;
+    var items=arr.slice(start,start+libPageSize);
+    var el=document.getElementById('libList');
+    if(arr.length===0){
+      el.innerHTML='<div class="empty-state">'+(libFilesCache.length===0?'暂无文件，点击下方按钮上传':'没有符合条件的文件')+'</div>';
+    }else{
+      var html='';
+      for(var i=0;i<items.length;i++){
+        var f=items[i];
+        var catName='未分类';
+        if(f.doc_categories&&f.doc_categories.name)catName=f.doc_categories.name;
+        var upDate=f.created_at?f.created_at.split('T')[0]:'';
+        var meta=fmtSize(f.file_size)+' · '+escapeHtml(catName)+' · '+upDate;
+        if(f.description)meta+=' · '+escapeHtml(f.description);
+        html+='<div class="file-item">'
+          +'<div class="file-icon">'+fileIcon(f.file_name,f.mime_type)+'</div>'
+          +'<div class="file-main">'
+          +'<div class="file-name">'+escapeHtml(f.file_name)+'</div>'
+          +'<div class="file-meta">'+meta+'</div>'
+          +'</div>'
+          +'<div class="file-actions">'
+          +'<button class="log-btn" onclick="downloadFile('+f.id+')">下载</button>'
+          +'<button class="log-btn" onclick="showFileModal('+f.id+')">编辑</button>'
+          +'<button class="log-btn danger" onclick="delFile('+f.id+')">删除</button>'
+          +'</div>'
+          +'</div>';
+      }
+      el.innerHTML=html;
+    }
+    document.getElementById('libPagination').innerHTML=pagerHtml(libPage,totalPages,'goLibPage');
+  }
+
+  window.goLibPage=function(p){libPage=p;renderLibFiles();};
+
+  window.queryLib=function(){
+    libFilter.keyword=document.getElementById('libKeyword').value;
+    libPage=1;
+    renderLibFiles();
+  };
+
+  window.resetLibFilter=function(){
+    document.getElementById('libKeyword').value='';
+    document.getElementById('libCategorySel').value='';
+    libFilter={keyword:'',category:''};
+    libPage=1;
+    renderCatBar();
+    renderLibFiles();
+  };
+
+  window.showUploadModal=function(){
+    if(!categoriesCache.length){
+      toast('请先创建类别');
+      showCatModal();
+      return;
+    }
+    document.getElementById('uploadFiles').value='';
+    document.getElementById('uploadDesc').value='';
+    var uSel=document.getElementById('uploadCategory');
+    uSel.value=libFilter.category?String(libFilter.category):'';
+    document.getElementById('uploadOverlay').classList.add('show');
+  };
+
+  window.hideUploadModal=function(){
+    document.getElementById('uploadOverlay').classList.remove('show');
+  };
+
+  window.doUpload=async function(){
+    var filesInput=document.getElementById('uploadFiles');
+    var files=filesInput.files;
+    if(!files||files.length===0){toast('请选择要上传的文件');return;}
+    var MAX=100*1024*1024;
+    var catId=document.getElementById('uploadCategory').value||null;
+    var desc=document.getElementById('uploadDesc').value.trim();
+    showLoading(true);
+    var ok=0,fail=0;
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      if(f.size>MAX){fail++;toast(f.name+' 超过100MB，已跳过');continue;}
+      var path=currentUser.id+'/'+uid()+'__'+encodeURIComponent(f.name);
+      var up=await supabase.storage.from('user-files').upload(path,f);
+      if(up.error){fail++;toast(f.name+' 上传失败: '+(up.error.message||''));continue;}
+      var ins=await supabase.from('library_files').insert({
+        user_id:currentUser.id,
+        category_id:catId,
+        file_name:f.name,
+        file_size:f.size,
+        mime_type:f.type||'',
+        storage_path:path,
+        description:desc
+      });
+      if(ins.error){
+        fail++;
+        toast(f.name+' 记录保存失败');
+        await supabase.storage.from('user-files').remove([path]);
+        continue;
+      }
+      ok++;
+    }
+    showLoading(false);
+    if(ok>0){
+      toast('上传成功 '+ok+' 个文件'+(fail?('，失败 '+fail+' 个'):''));
+      hideUploadModal();
+      await loadLibData();
+    }else if(fail>0){
+      toast('全部上传失败');
+    }
+  };
+
+  window.showFileModal=function(id){
+    var f=null;
+    for(var i=0;i<libFilesCache.length;i++){
+      if(libFilesCache[i].id===id){f=libFilesCache[i];break;}
+    }
+    if(!f)return;
+    fileEditId=id;
+    document.getElementById('fileEditName').textContent=f.file_name;
+    document.getElementById('fileEditCat').value=f.category_id?String(f.category_id):'';
+    document.getElementById('fileEditDesc').value=f.description||'';
+    document.getElementById('fileOverlay').classList.add('show');
+  };
+
+  window.hideFileModal=function(){
+    document.getElementById('fileOverlay').classList.remove('show');
+  };
+
+  window.saveFileEdit=async function(){
+    var cat=document.getElementById('fileEditCat').value||null;
+    var desc=document.getElementById('fileEditDesc').value.trim();
+    showLoading(true);
+    try{
+      var upd=await supabase.from('library_files').update({category_id:cat,description:desc})
+        .eq('id',fileEditId).eq('user_id',currentUser.id);
+      if(upd.error){toast('更新失败: '+(upd.error.message||''));return;}
+      toast('已更新');
+      hideFileModal();
+      await loadLibFiles();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.downloadFile=async function(id){
+    var f=null;
+    for(var i=0;i<libFilesCache.length;i++){
+      if(libFilesCache[i].id===id){f=libFilesCache[i];break;}
+    }
+    if(!f)return;
+    showLoading(true);
+    try{
+      var res=await supabase.storage.from('user-files').createSignedUrl(f.storage_path,3600);
+      if(res.error){toast('获取下载链接失败: '+(res.error.message||''));return;}
+      window.open(res.data.signedUrl,'_blank');
+    }catch(e){
+      toast('下载失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.delFile=async function(id){
+    var f=null;
+    for(var i=0;i<libFilesCache.length;i++){
+      if(libFilesCache[i].id===id){f=libFilesCache[i];break;}
+    }
+    if(!f)return;
+    if(!confirm('确认删除文件「'+f.file_name+'」？此操作不可恢复！'))return;
+    showLoading(true);
+    try{
+      await supabase.storage.from('user-files').remove([f.storage_path]);
+      var del=await supabase.from('library_files').delete().eq('id',id).eq('user_id',currentUser.id);
+      if(del.error){toast('记录删除失败: '+(del.error.message||''));return;}
+      toast('已删除');
+      await loadLibFiles();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.showCatModal=function(){
+    document.getElementById('catNameInput').value='';
+    document.getElementById('catOverlay').classList.add('show');
+  };
+
+  window.hideCatModal=function(){
+    document.getElementById('catOverlay').classList.remove('show');
+  };
+
+  window.saveCat=async function(){
+    var name=document.getElementById('catNameInput').value.trim();
+    if(!name){toast('请输入类别名称');return;}
+    showLoading(true);
+    try{
+      var ins=await supabase.from('doc_categories').insert({user_id:currentUser.id,name:name});
+      if(ins.error){toast('创建失败: '+(ins.error.message||''));return;}
+      toast('类别已创建');
+      hideCatModal();
+      await loadLibData();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.showCatManageModal=function(){
+    var el=document.getElementById('catManageList');
+    if(categoriesCache.length===0){
+      el.innerHTML='<div class="empty-state">暂无类别</div>';
+    }else{
+      var html='';
+      for(var i=0;i<categoriesCache.length;i++){
+        var c=categoriesCache[i];
+        var cnt=0;
+        for(var j=0;j<libFilesCache.length;j++){
+          if(libFilesCache[j].category_id===c.id)cnt++;
+        }
+        html+='<div class="admin-user-item">'
+          +'<div class="admin-user-info"><div class="admin-user-email">'+escapeHtml(c.name)+'</div>'
+          +'<div class="admin-user-meta" style="font-size:12px;color:var(--gray)">'+cnt+' 个文件</div></div>'
+          +'<div class="admin-user-actions">'
+          +'<button class="admin-action-btn" onclick="renameCat('+c.id+','+jsStr(c.name)+')">重命名</button>'
+          +'<button class="admin-action-btn danger" onclick="delCat('+c.id+','+jsStr(c.name)+')">删除</button>'
+          +'</div></div>';
+      }
+      el.innerHTML=html;
+    }
+    document.getElementById('catManageOverlay').classList.add('show');
+  };
+
+  window.hideCatManageModal=function(){
+    document.getElementById('catManageOverlay').classList.remove('show');
+  };
+
+  window.renameCat=async function(id,name){
+    var newName=prompt('重命名类别:',name);
+    if(!newName||!newName.trim()||newName.trim()===name)return;
+    showLoading(true);
+    try{
+      var upd=await supabase.from('doc_categories').update({name:newName.trim()})
+        .eq('id',id).eq('user_id',currentUser.id);
+      if(upd.error){toast('重命名失败: '+(upd.error.message||''));return;}
+      toast('已重命名');
+      await loadLibData();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
+  window.delCat=async function(id,name){
+    var cnt=0;
+    for(var i=0;i<libFilesCache.length;i++){
+      if(libFilesCache[i].category_id===id)cnt++;
+    }
+    var msg='确定删除类别「'+name+'」？';
+    if(cnt>0)msg+='该类别下 '+cnt+' 个文件将变为未分类（不会删除文件）。';
+    if(!confirm(msg))return;
+    showLoading(true);
+    try{
+      var del=await supabase.from('doc_categories').delete().eq('id',id).eq('user_id',currentUser.id);
+      if(del.error){toast('删除失败: '+(del.error.message||''));return;}
+      toast('类别已删除');
+      if(String(libFilter.category)===String(id)){libFilter.category='';}
+      hideCatManageModal();
+      await loadLibData();
+    }catch(e){
+      toast('操作失败');
+    }finally{
+      showLoading(false);
+    }
+  };
+
   // ==================== 初始化 ====================
   async function init(){
     load();
@@ -1624,6 +2485,8 @@ body{
       isAdmin=false;
       document.getElementById('adminBtn').style.display='none';
       data={dutyRecords:[],compRecords:[],initialBalance:0};
+      logLoaded=false;libLoaded=false;
+      logListCache=[];categoriesCache=[];libFilesCache=[];
       showAuthScreen();
     }
   });
