@@ -2266,8 +2266,8 @@ body{
     for(var i=0;i<files.length;i++){
       var f=files[i];
       if(f.size>MAX){fail++;toast(f.name+' 超过100MB，已跳过');continue;}
-      var safeName=f.name.replace(/[\/\\]/g,'_');
-      var path=currentUser.id+'/'+uid()+'__'+safeName;
+      var ext=f.name.lastIndexOf('.')>=0?f.name.slice(f.name.lastIndexOf('.')):'',
+          path=currentUser.id+'/'+uid()+ext;
       var up=await supabase.storage.from('user-files').upload(path,f);
       if(up.error){fail++;toast(f.name+' 上传失败: '+(up.error.message||''));continue;}
       var ins=await supabase.from('library_files').insert({
