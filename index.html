@@ -804,7 +804,18 @@ body{
   const SUPABASE_URL = "https://zotnonwudryjspkkbugl.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_OfgEnMd4ouQ6gY3sXqJ2XQ_95tIEh0Y";
   const { createClient } = window.supabase;
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // 兼容 Edge 跟踪防护拦截 localStorage：提供自定义 storage，被拦截时回退到内存
+  function makeAuthStorage(){
+    var mem={};
+    return{
+      getItem:function(k){try{return localStorage.getItem(k)}catch(e){return mem[k]||null}},
+      setItem:function(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}},
+      removeItem:function(k){try{localStorage.removeItem(k)}catch(e){delete mem[k]}}
+    };
+  }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth:{storage:makeAuthStorage(),autoRefreshToken:true,persistSession:true,detectSessionInUrl:true}
+  });
   const KEY='dutyCompTracker_v1';
   const OFFLINE_QUEUE_KEY = "duty_offline_queue";
   var data={dutyRecords:[],compRecords:[],initialBalance:0};
