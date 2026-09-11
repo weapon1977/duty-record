@@ -2459,8 +2459,22 @@ body{
         for(var s=0;s<wb.SheetNames.length;s++){
           var sn=wb.SheetNames[s];
           html+='<h3 style="margin:8px 0 4px;font-size:14px;color:var(--blue)">'+escapeHtml(sn)+'</h3>';
-          var shtml=XLSX.utils.sheet_to_html(wb.Sheets[sn],{editable:false});
-          html+=shtml;
+          var rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+          html+='<table style="border-collapse:collapse;width:100%;margin-bottom:12px;font-size:13px;border:1px solid #ddd">';
+          for(var ri=0;ri<rows.length;ri++){
+            html+='<tr style="background:'+(ri%2===0?'#fff':'#f8f9fa')+'">';
+            var row=rows[ri];
+            for(var ci=0;ci<row.length;ci++){
+              var cell=String(row[ci]||'');
+              if(ri===0){
+                html+='<th style="border:1px solid #ddd;padding:6px 8px;background:#e9ecef;font-weight:600;white-space:nowrap">'+escapeHtml(cell)+'</th>';
+              }else{
+                html+='<td style="border:1px solid #ddd;padding:6px 8px;white-space:nowrap">'+escapeHtml(cell)+'</td>';
+              }
+            }
+            html+='</tr>';
+          }
+          html+='</table>';
         }
         html+='</div>';
         body.innerHTML=html;
